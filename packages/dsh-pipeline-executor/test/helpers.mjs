@@ -17,6 +17,9 @@ export const REPO_MANIFEST_PATH = fileURLToPath(new URL('../../../src/manifest/p
 /** The REAL shipped output schemas — they must pass the loader (G1b guard). */
 export const REPO_SCHEMAS_DIR = fileURLToPath(new URL('../../../src/schemas/', import.meta.url));
 
+/** The REAL shipped engineer dispatch prompt — it must render the validator self-checks (G3-F3). */
+export const REPO_ENGINEER_PROMPT_PATH = fileURLToPath(new URL('../../../src/manifest/prompts/engineer.md', import.meta.url));
+
 export const ROLE_ALPHA = 'You are ALPHA-ROLE.\nRed-first discipline; evidence over claims.\n';
 export const ROLE_LENS = 'You are BATTERY-LENS.\nAttack the target through exactly one lens.\n';
 export const ROLE_SYNTH = 'You are BATTERY-SYNTHESIS.\nRead lens artifacts from disk; emit the decision.\n';
@@ -26,6 +29,7 @@ export const TEMPLATE = [
   '- Stage: {{STAGE}}, attempt {{ATTEMPT}}. Workspace: {{WORKSPACE}}',
   '- Build target kind: {{TARGET}}',
   '- Artifact: {{ARTIFACT}}',
+  '- Preset dir: {{PRESET_DIR}}',
   '{{GATE_LOG_PREV}}',
   '',
 ].join('\n');
@@ -120,15 +124,22 @@ export async function makeFixture(t, { mutate, files } = {}) {
 /**
  * Fake `subagents` registry. `plan.behavior` may be an object or a
  * `(request, id) => behavior` function; behavior = {structured, stopReason,
- * output, reject}. Tracks every request and the max in-flight concurrency.
+ * output, reject, noLocalAgent}. Tracks every request and the max in-flight
+ * concurrency. Each run handle mirrors the in-process spawn provider shape
+ * `{id, localAgent, result, dispose}` — `localAgent.session` is what the
+ * tokenMeter adapter measures (`noLocalAgent: true` simulates a provider
+ * whose run carries no local agent). `order` records dispose calls (and
+ * whatever a test's own callbacks push) for measure-before-dispose asserts.
  */
 export function makeFakeSubagents(plan = {}) {
   const calls = [];
+  const order = [];
   let inFlight = 0;
   let maxInFlight = 0;
   let n = 0;
   return {
     calls,
+    order,
     get maxInFlight() { return maxInFlight; },
     async start(provider, request) {
       calls.push({ provider, request });
@@ -150,7 +161,82 @@ export function makeFakeSubagents(plan = {}) {
           stopReason: behave.stopReason ?? 'completed',
         };
       })();
-      return { id, result, dispose: plan.dispose ?? (() => {}) };
+      return {
+        id,
+        result,
+        localAgent: behave.noLocalAgent ? undefined : { session: { id: `session-${id}` } },
+        dispose: plan.dispose ?? (() => { order.push({ op: 'dispose', id }); }),
+      };
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Fake host tool mount — the G1b Invariant 5 class-killer
+// ---------------------------------------------------------------------------
+
+/**
+ * Additionalproperties-strict schema walk mirroring the live host's
+ * execute-return validation (dsh-tools; violation text matches the live
+ * `"…" is not a declared property (additionalProperties: false)` shape).
+ * Handles BOTH `required` dialects: node-level array (outputSchema dialect)
+ * and per-property `required: true` (defineTool dialect). Returns the list
+ * of violations — empty means valid.
+ */
+export function validateAgainstSchema(value, schema, path = 'return') {
+  const violations = [];
+  const type = schema?.type;
+  if (type === 'object') {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) return [`"${path}" must be an object`];
+    const properties = schema.properties ?? {};
+    const required = new Set(Array.isArray(schema.required) ? schema.required : []);
+    for (const [key, child] of Object.entries(properties)) {
+      if (child?.required === true) required.add(key);
+    }
+    for (const key of required) {
+      if (!Object.hasOwn(value, key) || value[key] === undefined) violations.push(`missing required property "${path}.${key}"`);
+    }
+    if (schema.additionalProperties === false) {
+      for (const key of Object.keys(value)) {
+        if (!Object.hasOwn(properties, key)) violations.push(`"${path}.${key}" is not a declared property (additionalProperties: false)`);
+      }
+    }
+    for (const [key, child] of Object.entries(properties)) {
+      if (Object.hasOwn(value, key) && value[key] !== undefined) violations.push(...validateAgainstSchema(value[key], child, `${path}.${key}`));
+    }
+    return violations;
+  }
+  if (type === 'array') {
+    if (!Array.isArray(value)) return [`"${path}" must be an array`];
+    if (schema.items) value.forEach((entry, i) => violations.push(...validateAgainstSchema(entry, schema.items, `${path}[${i}]`)));
+    return violations;
+  }
+  if (type === 'string' && typeof value !== 'string') return [`"${path}" must be a string`];
+  if (type === 'number' && typeof value !== 'number') return [`"${path}" must be a number`];
+  if (type === 'boolean' && typeof value !== 'boolean') return [`"${path}" must be a boolean`];
+  return violations;
+}
+
+/**
+ * Mount a tool the way the LIVE host does (BUILD.md Invariant 5): every
+ * execute return is validated against the tool's declared `output.schema`,
+ * additionalProperties-strict, AFTER the tool's work has already succeeded —
+ * exactly when the 0.1.0 G1b bug fired. Any test that exercises a tool
+ * definition must mount it through this helper so the schema-violation class
+ * dies offline instead of on the first real call.
+ */
+export function mountTool(tool) {
+  const schema = tool?.output?.schema;
+  if (!schema) throw new Error(`mountTool: tool "${tool?.name}" declares no output.schema`);
+  return {
+    ...tool,
+    async execute(args, exec) {
+      const value = await tool.execute(args, exec);
+      const violations = validateAgainstSchema(value, schema);
+      if (violations.length > 0) {
+        throw new Error(`fake host: tool "${tool.name}" execute return violates its declared output.schema: ${violations.join('; ')}`);
+      }
+      return value;
     },
   };
 }

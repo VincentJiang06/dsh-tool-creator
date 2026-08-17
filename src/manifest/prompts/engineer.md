@@ -8,4 +8,8 @@
   pressure narratives calibrate your corpus).
 - Build under, and only under: {{WORKSPACE}}/build
 - Your dossier artifact: {{ARTIFACT}} (emit via structured_output).
+- Self-check before you return (the target pack's §5) — run BOTH validator
+  commands exactly as written and get exit 0 from each:
+  `python3 {{PRESET_DIR}}/validators/validate_report.py {{WORKSPACE}}/artifacts/evidence-dossier.json --target-dir {{WORKSPACE}}/build`
+  `python3 {{PRESET_DIR}}/validators/validate_structure.py {{WORKSPACE}}/artifacts/structure-contract.json --target-dir {{WORKSPACE}}/build --check-files`
 {{GATE_LOG_PREV}}

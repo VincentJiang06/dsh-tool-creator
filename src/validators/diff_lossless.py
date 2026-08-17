@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """diff_lossless.py — verify a skill restructure preserved every fact.
 
-Absorbed into skill-creator-max from skill-zipper (proven tool, logic
+Absorbed into this pipeline from skill-zipper (proven tool, logic
 unchanged). Used by the zipper stage to prove a compression pass was
 lossless (feeds CompressionReport.incompressible_check / the lossless claim
 behind a "pass" lexicographic_verdict).

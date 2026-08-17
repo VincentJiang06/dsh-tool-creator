@@ -50,13 +50,18 @@ export const REMEDIES = {
     'the evidence ledger could not be appended — evidence is not optional; fix workspace permissions (evidence-ledger.jsonl and its directory must be writable) before re-running',
 };
 
-/** An executor failure: stable code + human message + remedy line. */
+/**
+ * An executor failure: stable code + human message + remedy line. A caller
+ * that has DIAGNOSED the failure more precisely than the code's default
+ * remedy may pass a `remedy` override (same code, sharper next step) — the
+ * DISPATCH_FAILED whitelist split in dispatch.js is the canonical user.
+ */
 export class PipelineError extends Error {
-  constructor(code, message, { cause, detail } = {}) {
+  constructor(code, message, { cause, detail, remedy } = {}) {
     super(message, cause ? { cause } : undefined);
     this.name = 'PipelineError';
     this.code = CODES[code] ? code : CODES.MANIFEST_INVALID;
-    this.remedy = REMEDIES[this.code];
+    this.remedy = typeof remedy === 'string' && remedy !== '' ? remedy : REMEDIES[this.code];
     this.detail = detail;
   }
 
@@ -95,6 +100,21 @@ export function clampBytes(text, maxBytes = 4000) {
  * (v4-pro research: it collides with the model's special-token markup).
  */
 export const DSML_SEQUENCE = '<｜';
+
+/**
+ * The output schema BOTH registered tools declare (defineTool per-property
+ * `required: true` dialect). The live host validates every execute RETURN
+ * against this, additionalProperties-strict (BUILD.md Invariant 5, learned
+ * live in G1b: extra keys beyond {summary} turned a fully successful stage
+ * run into a tool error). Exported from this pure module so the offline test
+ * fakes mount and enforce the REAL declared schema — the schema-violation
+ * class must die offline, not on the first live call.
+ */
+export const TEXT_OUTPUT_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  properties: { summary: { type: 'string', required: true } },
+};
 
 /** Throw MANIFEST_INVALID when `text` carries the DSML collision sequence. */
 export function assertNoDsml(text, sourceName) {
@@ -347,8 +367,12 @@ export async function loadOutputSchema(absPath) {
 // DISPATCH CONTEXT template rendering
 // ---------------------------------------------------------------------------
 
-/** The complete variable vocabulary a promptTemplate may use. */
-export const TEMPLATE_VARS = ['WORKSPACE', 'TARGET', 'ARTIFACT', 'STAGE', 'ATTEMPT', 'GATE_LOG_PREV'];
+/**
+ * The complete variable vocabulary a promptTemplate may use. `PRESET_DIR` is
+ * the executor's resolved absolute `baseDir` — it lets a dispatch prompt
+ * spell out preset-shipped commands (validators/…) as absolute paths.
+ */
+export const TEMPLATE_VARS = ['WORKSPACE', 'TARGET', 'ARTIFACT', 'STAGE', 'ATTEMPT', 'GATE_LOG_PREV', 'PRESET_DIR'];
 
 /**
  * Render a DISPATCH CONTEXT template. Fail-closed on BOTH sides:

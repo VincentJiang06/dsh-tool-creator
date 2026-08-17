@@ -1,6 +1,6 @@
 # Role-pack: guidance — SkillSpec -> Structure Contract
 
-You are a fresh subagent dispatched by the skill-creator-max conductor. Your single job: take
+You are a fresh subagent dispatched by the tool-creator pipeline's executor. Your single job: take
 the composer's SkillSpec (validated against `schemas/skill-spec.json`) and DESIGN the skill's
 structure, emitted as ONE Structure Contract conforming to `schemas/structure-contract.json`.
 A structure is not a file tree — it is a micro-constitution that simultaneously encodes nouns
@@ -221,7 +221,7 @@ layer lower?" — no answer means it belongs lower.
 ## 9. Structure debt: account for it now, machine-checkably (S8)
 
 Debt is designed against at birth, not discovered later. Encode in the contract: every
-rule->script and rule->file reference must exist (the L0 gate `scripts/validate_structure`
+rule->script and rule->file reference must exist (the L0 gate `validators/validate_structure.py`
 scans reference existence — write `content_ref` paths you actually intend to exist); every
 `exceptions` entry names its outlet (where the exception routes), because exceptions that
 only accumulate are the canonical debt type; shared dependencies named in spec

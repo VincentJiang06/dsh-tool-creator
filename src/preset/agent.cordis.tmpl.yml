@@ -17,8 +17,9 @@
 #               (reshaped around the executor).
 #   excluded  — tool-goal, plan-mode, agent-instructions, tool-ask-user,
 #               tool-todo, tool-ralph: a deterministic stage stepper carries
-#               no discretionary state. tool-skill/skill-filesystem return
-#               only if preset-local skills ship (L2 decision).
+#               no discretionary state. tool-skill/skill-filesystem: omitted
+#               (L2 decision, 2026-08-17 — see the preset-local skills note
+#               at the end of this file).
 
 # ── identity ────────────────────────────────────────────────────────────────
 
@@ -62,11 +63,15 @@
   isolate:
     compaction: true
     toolResultPruner: true
+  # Row names mirror the shipped cordis preset exactly: `dsh-compaction` is a
+  # LIBRARY package with no `/pruner` export — a row naming it fails at boot
+  # (fixed at L2; the plugins are dsh-compaction-basic and
+  # dsh-compaction-tool-result-pruner).
   config:
     - id: compaction-basic
-      name: '@deepseek-ai/dsh-compaction'
+      name: '@deepseek-ai/dsh-compaction-basic'
     - id: tool-result-pruner
-      name: '@deepseek-ai/dsh-compaction/pruner'
+      name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
 
 # ── the executor (the preset's reason to exist) ────────────────────────────
 
@@ -74,5 +79,21 @@
 # manifest, runs gates, and writes the evidence ledger. It consumes the
 # host-plane `subagents` registry (the same seam tool-subagent rows use) and
 # provides no service of its own — no realm needed. The manifest path is
-# preset-dir-relative and travels with the copy.
-# {{L1: executor row is inserted here by build.mjs once the package exists}}
+# preset-dir-relative and travels with the copy: `baseDir` is computed from
+# this composition file's own `baseUrl`, the same `!!js` convention the
+# shipped cordis preset uses for its skills/ directory.
+- id: pipeline-executor
+  name: 'dsh-pipeline-executor'
+  config:
+    baseDir: !!js "process.getBuiltinModule('node:url').fileURLToPath(new URL('.', baseUrl))"
+    manifestPath: manifest/pipeline.manifest.json
+
+# ── preset-local skills: OMITTED (L2 decision, 2026-08-17) ─────────────────
+
+# DECISION D5 plans preset-local skills (cordis convention: skill-filesystem
+# customSkillDirs + baseUrl, plus tool-skill) to carry role-agnostic public
+# doctrine. No file ships under skills/ yet, so mounting both rows today
+# would register an EMPTY catalog — schema noise in every conductor turn for
+# zero capability. Add both rows back in the SAME commit that adds the first
+# skills/ file, and disable the default skill roots when doing so (the
+# global-root leak class is real — see dsh-plugin-hazards).

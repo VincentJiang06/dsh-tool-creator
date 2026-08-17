@@ -26,6 +26,7 @@ const indented = charter.split('\n').map((l) => (l.length ? `      ${l}` : '')).
 // ---- web plane: the preset directory --------------------------------------
 const tmpl = readFileSync(join(SRC, 'preset/agent.cordis.tmpl.yml'), 'utf8');
 if (!tmpl.includes('{{CHARTER_INDENTED}}')) throw new Error('template lost its charter marker');
+if (!tmpl.includes('name: \'dsh-pipeline-executor\'')) throw new Error('template lost the executor row (L2)');
 writeFileSync(join(PRESET, 'agent.cordis.yml'), tmpl.replace('{{CHARTER_INDENTED}}', indented));
 cpSync(join(SRC, 'preset/preset.yml'), join(PRESET, 'preset.yml'));
 for (const dir of ['manifest', 'roles', 'targets', 'schemas', 'validators', 'references']) {

@@ -48,7 +48,7 @@ export const LEDGERED_CODES = new Set([CODES.DISPATCH_FAILED, CODES.ROLE_NO_OUTP
 // ---------------------------------------------------------------------------
 
 /** The seam names the executor accepts. Anything else in `_seams` is ignored. */
-export const SEAM_NAMES = ['subagents', 'execFile', 'getTokens', 'listTools'];
+export const SEAM_NAMES = ['subagents', 'execFile', 'measureTokens', 'listTools'];
 
 /**
  * Resolve test seams from a raw `_seams` object: FUNCTIONS ONLY. A value that
@@ -165,18 +165,52 @@ export function checkToolWhitelist(tools, { listTools, field }) {
 }
 
 /**
+ * A child-start crash caused by the host's `tools.restrict()` refusing a
+ * whitelist name (G1b live shape: `tools.restrict() names unknown global
+ * tool "x"; known global tools: …`). This is a MANIFEST/DEPLOYMENT problem —
+ * the generic DISPATCH_FAILED remedy ("check the spawn provider row") would
+ * send the conductor to the wrong place, so the remedy is split.
+ */
+export const RESTRICT_REFUSAL = /tools\.restrict|unknown global tool/;
+
+/** The DISPATCH_FAILED remedy when the crash is a whitelist/deployment mismatch. */
+export const RESTRICT_REMEDY =
+  'the manifest whitelist names a tool absent from this deployment — the host tools.restrict() refused it at '
+  + 'child start; fix the manifest whitelist or install/mount the plugin that provides the missing tool '
+  + '(retrying the same dispatch will crash again)';
+
+/**
  * Dispatch ONE confined child and settle it (SPIKE settle pattern: collect
  * the result and dispose, never letting disposal mask a result failure).
  * Fail-closed success: `stopReason === 'completed'` AND structured present.
+ *
+ * `measureTokens(childSession)` (optional) is called BETWEEN result
+ * settlement and disposal — the only window where the child session
+ * (`run.localAgent.session`, in-process spawn provider run shape) is
+ * guaranteed alive. Every failure of the measurement degrades to null
+ * (honest-null beats a wrong number), never to a dispatch failure.
  */
-async function dispatchChild(subagents, request) {
+async function dispatchChild(subagents, request, measureTokens) {
   let run;
   try {
     run = await subagents.start('spawn', request);
   } catch (error) {
-    throw new PipelineError(CODES.DISPATCH_FAILED, `subagents.start threw: ${String(error?.message ?? error)}`, { cause: error });
+    const message = String(error?.message ?? error);
+    throw new PipelineError(CODES.DISPATCH_FAILED, `subagents.start threw: ${message}`, {
+      cause: error,
+      ...(RESTRICT_REFUSAL.test(message) ? { remedy: RESTRICT_REMEDY } : {}),
+    });
   }
   const [execution] = await Promise.allSettled([run.result]);
+  let tokens = null;
+  if (execution.status === 'fulfilled' && typeof measureTokens === 'function') {
+    try {
+      const session = run.localAgent?.session;
+      tokens = session ? (await measureTokens(session)) ?? null : null;
+    } catch {
+      tokens = null;
+    }
+  }
   const [disposal] = await Promise.allSettled([Promise.resolve().then(() => run.dispose())]);
   if (execution.status === 'rejected') {
     throw new PipelineError(
@@ -199,7 +233,7 @@ async function dispatchChild(subagents, request) {
       `child ${run.id ?? '?'} settled without structured output (stopReason=${result?.stopReason ?? 'unknown'}) — its text prose is never parsed for results`,
     );
   }
-  return { id: run.id, structured: result.structured };
+  return { id: run.id, structured: result.structured, tokens };
 }
 
 /** Last `n` lines of a text blob (gate-log tail for red results). */
@@ -224,7 +258,7 @@ const dirRel = (value) => String(value).replace(/[\\/]+$/u, '');
  * @param {{stage: string, attempt?: number, target?: string}} args
  * @param {object} deps everything injected:
  *   options {manifestPath, baseDir, maxConcurrentDispatches, dispatchTimeoutMs},
- *   workspace (abs dir), subagents ({start}), execFileImpl, getTokens?,
+ *   workspace (abs dir), subagents ({start}), execFileImpl, measureTokens?,
  *   listTools?, parent (calling agent), signal?, manifestCache (Map),
  *   sessionState ({stages:{}}).
  */
@@ -284,6 +318,9 @@ export async function runStage(args, deps) {
     GATE_LOG_PREV: attempt > 1
       ? `- Previous attempt's gate log: ${prevLogAbs} — read it from disk FIRST; it is why this attempt exists.`
       : '',
+    // The resolved ABSOLUTE preset dir, so prompts can spell out
+    // preset-shipped commands (validators/…) with no cwd guessing.
+    PRESET_DIR: resolve(baseDir),
   };
 
   const templateText = await readPresetFile(baseDir, stage.dispatch.promptTemplate, `dispatch.promptTemplate (${stage.dispatch.promptTemplate})`);
@@ -321,6 +358,7 @@ export async function runStage(args, deps) {
 
   const facts = {
     childSessionIds: [],
+    childTokens: [],
     artifactPath: null,
     artifactSha256: null,
     gateExit: null,
@@ -328,16 +366,20 @@ export async function runStage(args, deps) {
     gateLogSha256: null,
   };
 
-  const resolveTokens = async () => {
-    try {
-      const value = typeof deps.getTokens === 'function' ? await deps.getTokens() : null;
-      return value ?? null; // absent host meter → null, DISCLOSED, never fabricated
-    } catch {
-      return null;
-    }
-  };
+  /**
+   * Ledger `tokens`: the summed per-child `measure().totalTokens` — but ONLY
+   * when EVERY child of this attempt yielded a number. A partial sum is a
+   * wrong number, and honest-null beats a wrong number: no meter, no
+   * reachable child session, or any measurement failure → null, DISCLOSED,
+   * never fabricated.
+   */
+  const tokensOfAttempt = () => (
+    facts.childTokens.length > 0 && facts.childTokens.every((t) => typeof t === 'number')
+      ? facts.childTokens.reduce((a, b) => a + b, 0)
+      : null
+  );
 
-  const buildLedgerEntry = async (errorCode) => ({
+  const buildLedgerEntry = (errorCode) => ({
     ts: new Date().toISOString(),
     pipeline: manifest.pipeline,
     manifestSha256: loaded.sha256,
@@ -351,7 +393,7 @@ export async function runStage(args, deps) {
     gateLogSha256: facts.gateLogSha256,
     roleModel: model,
     durationMs: Date.now() - t0,
-    tokens: await resolveTokens(),
+    tokens: tokensOfAttempt(),
     error: errorCode ?? null,
   });
 
@@ -367,8 +409,9 @@ export async function runStage(args, deps) {
         maxTokens: stage.role.maxTokens,
         promptText: `Begin stage "${stageId}" (attempt ${attempt}). Your persona is the complete charter; work in the workspace and emit your result via structured_output.`,
       }, outputSchema);
-      const child = await dispatchChild(deps.subagents, request);
+      const child = await dispatchChild(deps.subagents, request, deps.measureTokens);
       facts.childSessionIds.push(child.id);
+      facts.childTokens.push(child.tokens);
       structured = child.structured;
     } else {
       // ---- fanout (battery): lens dispatches under the concurrency cap ----
@@ -388,8 +431,9 @@ export async function runStage(args, deps) {
             maxTokens: fan.lensMaxTokens,
             promptText: `Begin stage "${stageId}" (attempt ${attempt}). You are the "${lens}" lens — run exactly that lens per your persona and emit your findings via structured_output.`,
           }, lensSchema);
-          const child = await dispatchChild(deps.subagents, request);
+          const child = await dispatchChild(deps.subagents, request, deps.measureTokens);
           facts.childSessionIds.push(child.id);
+          facts.childTokens.push(child.tokens);
           // The EXECUTOR writes the lens artifact from the structured return —
           // the model never relays payloads between children.
           const lensPath = join(artifactsDir, `${LENS_ARTIFACT_PREFIX}${lens}.json`);
@@ -411,8 +455,9 @@ export async function runStage(args, deps) {
         maxTokens: fan.synthesis.maxTokens,
         promptText: `Begin synthesis for stage "${stageId}" (attempt ${attempt}). Read the lens artifacts from disk (paths only — payloads are NOT inlined here):\n${pathsList}\nHunt cross-lens interactions and emit the decision via structured_output.`,
       }, outputSchema);
-      const synth = await dispatchChild(deps.subagents, synthRequest);
+      const synth = await dispatchChild(deps.subagents, synthRequest, deps.measureTokens);
       facts.childSessionIds.push(synth.id);
+      facts.childTokens.push(synth.tokens);
       structured = synth.structured;
     }
 
@@ -457,13 +502,13 @@ export async function runStage(args, deps) {
     // Evidence of the failed attempt: dispatch-phase-and-later failures are
     // ledgered BEFORE the tool call fails (a ledger failure outranks them).
     if (error instanceof PipelineError && LEDGERED_CODES.has(error.code)) {
-      error.ledgerLine = await appendLedger(ledgerPath, await buildLedgerEntry(error.code));
+      error.ledgerLine = await appendLedger(ledgerPath, buildLedgerEntry(error.code));
     }
     throw error;
   }
 
   // ---- mandatory evidence-ledger line -------------------------------------
-  const ledgerLine = await appendLedger(ledgerPath, await buildLedgerEntry(null));
+  const ledgerLine = await appendLedger(ledgerPath, buildLedgerEntry(null));
 
   // ---- per-session stage-attempt tracking (WeakMap-keyed by the caller) ----
   if (deps.sessionState) {

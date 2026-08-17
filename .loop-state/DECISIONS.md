@@ -63,3 +63,17 @@ Queued for executor 0.1.1 polish: fakes validate returns, {{PRESET_DIR}}
 template var + validator commands in engineer prompt (G3-F3 full fix),
 tokenMeter adapter, DISPATCH_FAILED remedy split. G1b kit + evidence kept in
 g1b/ (3-line ledger). Spend: well under ¥2.
+
+## L2-B (2026-08-17): charter final + composition finalized, G2 green
+Charter 150 lines, v4-pro house style, zero transcription mechanics; honest
+verdict rule (battery summary carries no verdict on green → charter cites the
+gate-validated artifact instead of self-asserting a level). Composition:
+executor row injected via shipped-cordis baseUrl convention; tool-skill rows
+omitted with dated comment; LATENT BOOT BUG fixed — L0 template named
+dsh-compaction(/pruner) which has no such export on rc.6; real rows are
+dsh-compaction-basic / dsh-compaction-tool-result-pruner (verified against
+installed exports). Role packs: identity/path cleanup only, listed line by
+line. QUEUED (next executor touch, likely L4 integration): battery stage
+summary should carry verdict=<battery>/<re_audit> parsed from the
+decision-record the executor itself writes — makes the charter's branch A
+automatic.

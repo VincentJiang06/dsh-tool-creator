@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { CODES, PipelineError, sha256 } from '../lib/manifest.js';
+import { CODES, PipelineError, TEXT_OUTPUT_SCHEMA, sha256 } from '../lib/manifest.js';
 import { appendLedger, checkToolWhitelist, resolveSeams, runStage, statusReport, tailLines } from '../lib/dispatch.js';
 import {
   ALPHA_SCHEMA,
@@ -14,7 +14,9 @@ import {
   makeFakeExecFile,
   makeFakeSubagents,
   makeFixture,
+  mountTool,
   readLedger,
+  validateAgainstSchema,
 } from './helpers.mjs';
 
 const LEDGER = 'evidence-ledger.jsonl';
@@ -76,13 +78,49 @@ test('happy path: dispatch, executor-written artifact, gate, mandatory ledger li
   assert.deepEqual(deps.sessionState.stages.alpha, { attempt: 1, gateExit: 0, ledgerLine: 1 });
 });
 
-test('tokens ride the ledger when the meter resolves; a throwing meter degrades to null', async (t) => {
+test('tokenMeter adapter: measure(childSession).totalTokens rides the ledger; a throwing meter degrades to null', async (t) => {
   const fx = await makeFixture(t);
-  await runStage({ stage: 'alpha' }, makeDeps(fx, { getTokens: async () => ({ input: 1316, output: 91 }) }));
-  await runStage({ stage: 'alpha', attempt: 2 }, makeDeps(fx, { getTokens: async () => { throw new Error('meter offline'); } }));
+  const measured = [];
+  await runStage({ stage: 'alpha' }, makeDeps(fx, {
+    measureTokens: (session) => { measured.push(session); return 1316; },
+  }));
+  await runStage({ stage: 'alpha', attempt: 2 }, makeDeps(fx, {
+    measureTokens: () => { throw new Error('meter offline'); },
+  }));
   const entries = await readLedger(join(fx.ws, LEDGER));
-  assert.deepEqual(entries[0].tokens, { input: 1316, output: 91 });
+  assert.equal(entries[0].tokens, 1316);
+  // The adapter is handed the CHILD's session from the run handle (spawn
+  // provider run shape: {id, localAgent, result, dispose}) — never the parent's.
+  assert.deepEqual(measured, [{ id: 'session-child-1' }]);
+  assert.equal(entries[1].tokens, null, 'a throwing meter is honest-null, never fabricated');
+});
+
+test('token measurement happens BETWEEN result settlement and disposal, and a run without localAgent stays null', async (t) => {
+  const fx = await makeFixture(t);
+  const subagents = makeFakeSubagents();
+  await runStage({ stage: 'alpha' }, makeDeps(fx, {
+    subagents,
+    measureTokens: (session) => { subagents.order.push({ op: 'measure', id: session.id }); return 42; },
+  }));
+  // Measure first, dispose second — after dispose() the child agent is torn
+  // down and the session is no longer guaranteed alive.
+  assert.deepEqual(subagents.order, [
+    { op: 'measure', id: 'session-child-1' },
+    { op: 'dispose', id: 'child-1' },
+  ]);
+
+  // A provider whose run handle carries no localAgent (child session NOT
+  // reachable from the executor's position) → tokens null, meter never asked.
+  const noAgent = makeFakeSubagents({ behavior: { structured: { ok: true }, noLocalAgent: true } });
+  let meterAsked = false;
+  await runStage({ stage: 'alpha', attempt: 2 }, makeDeps(fx, {
+    subagents: noAgent,
+    measureTokens: () => { meterAsked = true; return 99; },
+  }));
+  const entries = await readLedger(join(fx.ws, LEDGER));
+  assert.equal(entries[0].tokens, 42);
   assert.equal(entries[1].tokens, null);
+  assert.equal(meterAsked, false, 'no session to measure → the meter is not called');
 });
 
 // ---------------------------------------------------------------------------
@@ -114,6 +152,7 @@ test('confinement: SPIKE-shaped request — persona bytes, whitelist toolFilter,
   assert.match(request.persona, /Build target kind: plugin/);
   assert.ok(request.persona.includes(`Workspace: ${fx.ws}`));
   assert.ok(request.persona.includes(join(fx.ws, 'artifacts', 'alpha.json')), 'ARTIFACT rendered');
+  assert.ok(request.persona.includes(`Preset dir: ${fx.preset}`), 'PRESET_DIR rendered as the resolved absolute baseDir');
 
   // toolFilter: OBJECT form, exactly the manifest whitelist, verbatim.
   // (This deep-equal is the assertion that kills mutation (b).)
@@ -232,6 +271,31 @@ test('DISPATCH_FAILED carries the provider error verbatim; ledgered', async (t) 
   const entries = await readLedger(join(fx.ws, LEDGER));
   assert.equal(entries[0].error, CODES.DISPATCH_FAILED);
   assert.deepEqual(entries[0].childSessionIds, []);
+});
+
+test('DISPATCH_FAILED remedy split: a tools.restrict/unknown-global-tool crash blames the manifest whitelist, not the spawn provider row', async (t) => {
+  const fx = await makeFixture(t);
+  // The G1b-observed live shape (deployment without the whitelisted tool).
+  await assert.rejects(
+    runStage({ stage: 'alpha' }, makeDeps(fx, {
+      subagents: makeFakeSubagents({ startThrows: 'tools.restrict() names unknown global tool "grep"; known global tools: glob, read' }),
+    })),
+    (e) => e instanceof PipelineError
+      && e.code === CODES.DISPATCH_FAILED
+      && /manifest whitelist names a tool absent from this deployment/.test(e.remedy)
+      && /install\/mount the plugin/.test(e.remedy)
+      && !/spawn provider row/.test(e.remedy)
+      && /manifest whitelist/.test(e.toModelText()),
+  );
+  // Any other provider error keeps the generic spawn-provider remedy.
+  await assert.rejects(
+    runStage({ stage: 'alpha', attempt: 2 }, makeDeps(fx, {
+      subagents: makeFakeSubagents({ startThrows: 'provider route "deepseek-official" unavailable' }),
+    })),
+    (e) => e.code === CODES.DISPATCH_FAILED
+      && /spawn provider row/.test(e.remedy)
+      && !/manifest whitelist/.test(e.remedy),
+  );
 });
 
 test('GATE_SPAWN_FAILED: missing validator binary — remedy names python3; artifact + log still evidenced', async (t) => {
@@ -375,8 +439,8 @@ test('resolveSeams accepts functions only; config-file values can never replace 
   assert.deepEqual(resolveSeams(null), {});
   assert.deepEqual(resolveSeams('nonsense'), {});
   assert.deepEqual(resolveSeams({ execFile: '/usr/bin/evil', subagents: { start: 1 }, unknown: fn }), {});
-  const resolved = resolveSeams({ execFile: fn, subagents: fn, getTokens: fn, listTools: fn, extra: fn });
-  assert.deepEqual(Object.keys(resolved).sort(), ['execFile', 'getTokens', 'listTools', 'subagents']);
+  const resolved = resolveSeams({ execFile: fn, subagents: fn, measureTokens: fn, listTools: fn, extra: fn });
+  assert.deepEqual(Object.keys(resolved).sort(), ['execFile', 'listTools', 'measureTokens', 'subagents']);
   assert.equal(resolved.execFile, fn);
 });
 

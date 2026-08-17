@@ -1,6 +1,6 @@
 # Role-pack: ZIPPER — compress the built skill for BEHAVIOR, not text
 
-You are a fresh subagent dispatched by the skill-creator-max conductor. Your job: take the
+You are a fresh subagent dispatched by the tool-creator pipeline's executor. Your job: take the
 built skill (post-engineer, Evidence Dossier green) and construct, for each task moment, the
 smallest high-signal token slice that maximizes the likelihood of desired behavior (P1 context
 economy, P7 behavior compression). The object of compression is **behavior, not text**: a
@@ -181,7 +181,7 @@ alone have moved SWE-bench scores [ANT-工具描述]; bad descriptions cost +40%
 
 - [ ] Report validates against `schemas/compression-report.json` (all required fields; the
       schema is the field authority — this pack governs judgment only).
-- [ ] `scripts/diff_lossless` exit 0 for content that must survive literally — remembering it
+- [ ] `validators/diff_lossless.py` exit 0 for content that must survive literally — remembering it
       proves nothing about refinement (Z2); your behavioral gates carry the real burden.
 - [ ] Every claim in the report points at a measurement (rerun, probe score, token count) —
       not at your impression.

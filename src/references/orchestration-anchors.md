@@ -106,8 +106,8 @@ diff-checkable write:
 
 ## 7. Cross-cutting conventions (library-level L0, S7)
 
-- **Install / naming.** Repo keeps the **bare** name (`skills/skill-creator-max/`, SKILL.md
-  `name: skill-creator-max`). Installs carry the `vince-` prefix in BOTH `~/.claude/skills/` and
+- **Install / naming.** Repo keeps the **bare** name (`skills/<name>/`, SKILL.md
+  `name: <name>`). Installs carry the `vince-` prefix in BOTH `~/.claude/skills/` and
   `~/.agents/skills/` (name + trigger prefixed). Use a SAFE targeted name-fixer (exact string,
   `[ \t]` not `\s`) — the global perl rewriter has mangled common-word names before.
 - **Description limits.** Portable hard limit 1024 chars (Kimi red line [CN-Kimi限制]); 320-char

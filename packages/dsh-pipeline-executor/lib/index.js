@@ -16,7 +16,7 @@
  */
 import z from '@deepseek-ai/schemastery';
 import { defineTool } from '@deepseek-ai/dsh-tools';
-import { CODES, PipelineError, REMEDIES, clampBytes, resolveOptions } from './manifest.js';
+import { CODES, PipelineError, REMEDIES, TEXT_OUTPUT_SCHEMA, clampBytes, resolveOptions } from './manifest.js';
 import { resolveSeams, defaultExecFile, runStage, statusReport } from './dispatch.js';
 
 export const name = 'pipeline-executor';
@@ -112,17 +112,43 @@ export function apply(ctx, config = {}) {
     return undefined;
   }
 
-  /** Lazy token-meter resolution — absent meter → null in the ledger, never fabricated. */
-  async function tokensOf() {
-    if (seams.getTokens) return seams.getTokens();
-    try {
-      const meter = ctx.get('tokenMeter');
-      if (!meter) return null;
-      const value = typeof meter.read === 'function' ? await meter.read() : null;
-      return value ?? null;
-    } catch {
-      return null;
-    }
+  /**
+   * Per-child token measurement (lazy service resolution). G1b live finding:
+   * the host `tokenMeter` exposes `measure(session, requestHeader?)`, NOT
+   * `read()` — 0.1.0's `meter.read()` probe always degraded to null.
+   *
+   * The child session IS reachable from the executor's position: the spawn
+   * provider's run handle carries `localAgent` (the in-process child agent —
+   * `@deepseek-ai/dsh-subagent-in-process-driver` `drivePublishedRun` returns
+   * `{id, localAgent, result, dispose}`), and `localAgent.session` is exactly
+   * the session object `measure()` folds (`readResult` in the same driver
+   * reads `child.session.events`). dispatch.js calls this BETWEEN result
+   * settlement and disposal, the only window the session is guaranteed alive.
+   *
+   * `requestHeader` is deliberately NOT passed: it is optional (measure()
+   * falls back to the session's own logged header), and the executor does not
+   * guess envelope shapes it cannot verify offline. Every failure mode is
+   * honest-null: no meter service, no measure(), a remote provider's run
+   * without `localAgent`, or a measure() throw → null, never fabricated.
+   *
+   * VERIFICATION LIMIT: `run.localAgent.session` + `measure().totalTokens`
+   * are proven by inspection of the INSTALLED host source (dsh-token-meter
+   * `measure()` at lib/index.js:444, in-process driver run shape), not yet
+   * observed through this adapter in a live executor run — the next live boot
+   * must confirm a non-null `tokens` ledger field.
+   */
+  function measureTokensOf() {
+    if (seams.measureTokens) return seams.measureTokens;
+    return (session) => {
+      try {
+        const meter = ctx.get('tokenMeter');
+        if (!meter || typeof meter.measure !== 'function' || !session) return null;
+        const measured = meter.measure(session);
+        return typeof measured?.totalTokens === 'number' ? measured.totalTokens : null;
+      } catch {
+        return null;
+      }
+    };
   }
 
   /** Shared execute wrapper: remedy-carrying failure mapping + byte clamp. */
@@ -140,8 +166,10 @@ export function apply(ctx, config = {}) {
     }
   };
 
+  // The declared schema lives in the PURE module (TEXT_OUTPUT_SCHEMA) so the
+  // offline fakes mount and enforce the exact bytes the live host enforces.
   const textOutput = {
-    schema: { type: 'object', additionalProperties: false, properties: { summary: { type: 'string', required: true } } },
+    schema: TEXT_OUTPUT_SCHEMA,
     render: (_args, value) => [{ type: 'text', text: value.summary }],
   };
 
@@ -172,7 +200,7 @@ export function apply(ctx, config = {}) {
         workspace: workspaceOf(exec),
         subagents: subagentsOf(),
         execFileImpl: seams.execFile ?? defaultExecFile,
-        getTokens: tokensOf,
+        measureTokens: measureTokensOf(),
         listTools: listToolsOf(),
         parent: exec.agent,
         signal: exec.signal,
@@ -202,7 +230,7 @@ export function apply(ctx, config = {}) {
   ctx.logger?.info?.('pipeline-executor: 2 tools registered (manifest loads lazily at first use)');
 }
 
-export { CODES, REMEDIES, PipelineError, resolveOptions, clampBytes } from './manifest.js';
+export { CODES, REMEDIES, PipelineError, TEXT_OUTPUT_SCHEMA, resolveOptions, clampBytes } from './manifest.js';
 export { resolveSeams, defaultExecFile, runStage, statusReport, appendLedger } from './dispatch.js';
 
 export default { name, inject, Config, apply };

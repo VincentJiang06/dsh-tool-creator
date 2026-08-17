@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """measure_tokens.py — real token accounting + architecture flags for a Claude Code skill.
 
-Absorbed into skill-creator-max from skill-zipper (proven tool, logic
+Absorbed into this pipeline from skill-zipper (proven tool, logic
 unchanged). Used by the zipper stage / Z-series CompressionReport to measure
 per-path token deltas (per_path_token_delta) and flag oversized always-loaded
 content ahead of a compression pass.
