@@ -106,3 +106,45 @@ The exact `subagents.start` request field shapes (persona/toolFilter nesting,
 parent acquisition, empty-toolFilter behavior) come from the spike report —
 builder must reconcile this spec against it and record deviations in
 .loop-state/DECISIONS.md.
+
+## Deviations (G1a build, 2026-08-17 — SPIKE-FINDINGS wins over SPEC where they conflict)
+
+1. **Request shape follows SPIKE verbatim.** `subagents.start('spawn', {label,
+   prompt: [content-block], parent (guarded), signal (REQUIRED, combined with
+   the dispatchTimeoutMs via AbortSignal.any), persona, toolFilter: {allow:
+   [...]} OBJECT form, agentOptions: {provider, model, maxTokens} only,
+   outputSchema})`; `descriptor` is never passed. Settle = allSettled on
+   run.result then dispose (spike pattern); success = `stopReason ===
+   'completed'` AND `structured` present — child TEXT is never parsed.
+2. **toolFilter pre-validation (SPIKE deviation 2).** `run_code` in a manifest
+   whitelist is always rejected; when the live tool list is enumerable, an
+   unknown tool name is rejected BEFORE dispatch. Both map to
+   MANIFEST_INVALID with a deployment-flavored remedy (SPEC's "clear
+   MANIFEST/DEPLOYMENT error") rather than a child-start crash.
+3. **`{{TARGET}}` source was undefined in SPEC.** The promptTemplates consume
+   it ("Build target kind"), so `pipeline_stage` gained an OPTIONAL `target`
+   string parameter; absent → rendered as `unspecified` (honest, never
+   guessed). Additive to the SPEC tool signature.
+4. **Lens outputSchema is not in the manifest.** Lens dispatches use a
+   permissive object-rooted schema `{type:'object', properties:{},
+   additionalProperties:true}` (explicit additionalProperties per SPIKE
+   deviation 4); the stage's `dispatch.outputSchema` binds the SYNTHESIS
+   dispatch only. An ADDITIVE optional manifest field
+   `fanout.lensOutputSchema` overrides the permissive default.
+5. **Ledger `error` field (additive).** DISPATCH_FAILED / ROLE_NO_OUTPUT /
+   GATE_SPAWN_FAILED attempts are ledgered before the tool call fails,
+   carrying `error: <code>` (null on ledgered successes, including red
+   gates). Pre-flight refusals (MANIFEST_INVALID, STAGE_UNKNOWN,
+   ATTEMPT_EXCEEDED) are NOT ledgered — nothing was dispatched.
+6. **A red gate is a reported outcome, not a tool error** (per SPEC's return
+   format): the tool returns `gateExit=<n>` plus the log tail; only the
+   executor-failure taxonomy throws.
+7. **Config gained `baseDir`** (test fallback; production carries an absolute
+   value via a `!!js` baseUrl expression — see README). `manifestPath` may
+   also be absolute, in which case it is used as-is.
+8. **Deviations recorded here** (this section) per the L1 build instruction,
+   superseding this file's older pointer to `.loop-state/DECISIONS.md`.
+9. **Env hygiene for gate subprocesses is deferred to G1b:** the default
+   execFile inherits the parent env (no `scrubbedParentEnv` — that seam
+   lives in `@deepseek-ai/dsh-subprocess`, an extra peer this package does
+   not yet declare). Open risk, recorded below in G1b terms.
