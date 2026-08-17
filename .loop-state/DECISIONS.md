@@ -136,3 +136,25 @@ execFile cwd=workspace — first live run would red every gate unless the
 preset dir is the cwd or paths are resolved/rewritten at mount. g1b sidestepped
 it with absolute paths. Fix belongs with the L5 live-run prep, one change
 covers all six commands uniformly.
+
+## L5-R1 first live run (2026-08-17 18:00-18:43): stopped_unmet at guidance — six findings
+WINS: conductor charter PERFECT across 3 failure classes (verbatim request.md,
+DISPATCH_FAILED→reissue→STOP, ROLE_NO_OUTPUT→3 attempts→STOP, honest
+stopped_unmet, correct STOP block every time); tokens VERIFICATION LIMIT
+RESOLVED (composer green line tokens:46927, error lines null-by-design);
+ledger hashes byte-exact; cost ¥2.65 off-peak for 3 attempts; loopback wire
+proven (session.create{cwd,agentPreset}/session.prompt/session.export).
+FIXES NEEDED (runner hot-fixed the INSTALLED copy; source repo pending):
+F1 web host outputSchema subset REJECTS $schema keyword (5 role schemas) —
+   strip in src + defensively in executor loadOutputSchema;
+F2 glob/grep not global tools on this deployment — drop from manifest;
+F3 guidance died 3× at maxTokens 16384 without structured_output (wandered:
+   30+ reads + location-helper spawns) — raise guidance cap + give ALL five
+   prompt templates {{PRESET_DIR}} absolute paths (kill the wandering);
+F4 MAJOR: children carry a scoped 'subagent' tool EXEMPT from toolFilter
+   (like structured_output) — roles spawned 9 helpers, one prompted "no
+   charter restrictions"; helpers inherit pipeline_* tools (recursion
+   hazard). T-D2 claim does NOT hold on web plane as stated. Investigate
+   depth/deny seam; else honest-limit + persona ban + battery detection.
+F6 minor: events.mux via curl yields no frames; session.list polling works.
+B15 head-to-head: DNF (no build) — target unmet this round, re-fire after fixes.
