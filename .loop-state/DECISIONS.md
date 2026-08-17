@@ -15,3 +15,15 @@
   maxTokens (runaway protection), gate cmds as argv arrays (no shell), battery
   fanout 5 lenses + synthesis. Executor implements EXACTLY this shape.
 - G0: 23 files hashed+verified; no /Users/vince residue; deterministic regen.
+
+## L1 spike E1' (2026-08-17): SEAM-CONFIRMED
+subagents.start from a plugin row works first-try in a real boot; all four
+confinement axes proven in the child session log. Eight implementation
+deviations recorded in packages/dsh-pipeline-executor/SPIKE-FINDINGS.md —
+law for the builder. Notables: toolFilter is {allow:[]} object form and
+throws on unknown names (pre-validate against live tool list); structured
+runs end with EMPTY text (never parse prose); reasoningEffort cannot be
+pinned per-dispatch (E3 seam-level confirmed); persona is additive, and the
+complete:true conductor-charter × role-persona interaction is UNTESTED →
+mandatory G1b check. Dispatch overhead ~1.3K/0.1K tokens. Spike plugin kept
+in spike/ as working reference; installed in headless profile (remove at L1).

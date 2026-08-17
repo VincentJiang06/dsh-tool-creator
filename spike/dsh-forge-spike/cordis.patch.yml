@@ -1,0 +1,6 @@
+# dsh-forge-spike bundle patch: mounts the spike's own tool row beside the
+# base bundle's rows. Removing the bundle removes the row.
+# `insert` must be a LIST of entries (the loader spreads it).
+- insert:
+    - id: forge-spike
+      name: dsh-forge-spike
