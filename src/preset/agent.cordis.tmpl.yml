@@ -3,7 +3,7 @@
 # (composer → guidance → engineer → zipper → battery) from a declarative
 # manifest with per-role confinement.
 #
-# GENERATED FILE — the source of truth is src/ in the dsh-forge repo; the
+# GENERATED FILE — the source of truth is src/ in the dsh-tool-creator repo; the
 # charter text is injected at build time from src/preset/charter.md. Edit the
 # source, run build.mjs, reinstall. Hand-edits here are overwritten.
 #
@@ -52,7 +52,7 @@
 
 # ── context survival ───────────────────────────────────────────────────────
 
-# Unlike the predecessor preset, forge keeps compaction: a five-stage run
+# Unlike the predecessor preset, tool-creator keeps compaction: a five-stage run
 # with retries is a long session, and the executor's small returns do not
 # guarantee the window never fills (E2 measures; if provably unnecessary the
 # rows drop in L7, not before).
