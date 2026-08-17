@@ -27,3 +27,14 @@ pinned per-dispatch (E3 seam-level confirmed); persona is additive, and the
 complete:true conductor-charter × role-persona interaction is UNTESTED →
 mandatory G1b check. Dispatch overhead ~1.3K/0.1K tokens. Spike plugin kept
 in spike/ as working reference; installed in headless profile (remove at L1).
+
+## Rename (2026-08-17, user): dsh-forge → dsh-tool-creator
+Done now: preset id `tool-creator`, display name, charter/manifest/template
+identity strings; remote → github.com/VincentJiang06/dsh-tool-creator (pushed).
+npm `dsh-tool-creator` verified AVAILABLE. Executor plugin name UNCHANGED
+(dsh-pipeline-executor — generic ecosystem piece, user approved separate).
+DEFERRED until the in-flight L1 builder lands (writes absolute paths):
+- [ ] local dir mv ~/playground/dsh-forge → ~/playground/dsh-tool-creator
+- [ ] residual comment sweep: build.mjs header, profile-patch generated
+      comments, charter.md H1, RESUME.md title cleanup, packages/SPEC.md refs
+- [ ] PLAN/DECISION docs in dsh-projects/creator-v2 + memory files
