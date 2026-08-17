@@ -8,7 +8,7 @@
       config:
         # Paths inside the manifest (roles/, schemas/, manifest/prompts/) are
         # preset-dir-relative; `baseDir` names that preset/composition dir.
-        # In production the forge preset writes ABSOLUTE values here via a
+        # In production the tool-creator preset writes ABSOLUTE values here via a
         # !!js baseUrl expression, so the row travels with the preset copy:
         #   baseDir: !!js new URL('.', baseUrl).pathname
         # The relative default below only resolves when the harness cwd IS

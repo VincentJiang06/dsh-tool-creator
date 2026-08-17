@@ -97,7 +97,7 @@ test('confinement: SPIKE-shaped request — persona bytes, whitelist toolFilter,
   assert.equal(subagents.calls.length, 1);
   const { provider, request } = subagents.calls[0];
   assert.equal(provider, 'spawn');
-  assert.equal(request.label, 'forge alpha');
+  assert.equal(request.label, 'tool-creator alpha');
 
   // prompt is a content-block ARRAY, not a string (SPIKE deviation).
   assert.ok(Array.isArray(request.prompt));

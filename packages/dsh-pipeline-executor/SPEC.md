@@ -3,7 +3,7 @@
 npm package `dsh-pipeline-executor`, independently published, generically
 useful: a dsh plugin that runs a declarative multi-agent pipeline manifest
 with per-role confinement, mechanical gates, and a machine-written evidence
-ledger. dsh-forge is its first consumer. Everything in
+ledger. dsh-tool-creator is its first consumer. Everything in
 `../../src/targets/plugin/BUILD.md` applies to this package itself —
 including §2.1 boot invariants and §9 tool discipline.
 

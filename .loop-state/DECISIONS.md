@@ -1,7 +1,7 @@
-# dsh-forge loop decisions
+# dsh-tool-creator loop decisions
 
 ## L0 (2026-08-17)
-- Greenfield repo ~/playground/dsh-forge; proven assets (5 schemas, 7
+- Greenfield repo ~/playground/dsh-tool-creator; proven assets (5 schemas, 7
   validators, 5 role packs, 2 target packs, orchestration-anchors) imported
   from plugin-creator vendor/ — all clean of local paths, reviewed on entry.
 - Single-source charter: src/preset/charter.md → injected into BOTH
@@ -28,13 +28,13 @@ complete:true conductor-charter × role-persona interaction is UNTESTED →
 mandatory G1b check. Dispatch overhead ~1.3K/0.1K tokens. Spike plugin kept
 in spike/ as working reference; installed in headless profile (remove at L1).
 
-## Rename (2026-08-17, user): dsh-forge → dsh-tool-creator
+## Rename (2026-08-17, user): dsh-tool-creator → dsh-tool-creator
 Done now: preset id `tool-creator`, display name, charter/manifest/template
 identity strings; remote → github.com/VincentJiang06/dsh-tool-creator (pushed).
 npm `dsh-tool-creator` verified AVAILABLE. Executor plugin name UNCHANGED
 (dsh-pipeline-executor — generic ecosystem piece, user approved separate).
 DEFERRED until the in-flight L1 builder lands (writes absolute paths):
-- [ ] local dir mv ~/playground/dsh-forge → ~/playground/dsh-tool-creator
+- [ ] local dir mv ~/playground/dsh-tool-creator → ~/playground/dsh-tool-creator
 - [ ] residual comment sweep: build.mjs header, profile-patch generated
       comments, charter.md H1, RESUME.md title cleanup, packages/SPEC.md refs
 - [ ] PLAN/DECISION docs in dsh-projects/creator-v2 + memory files

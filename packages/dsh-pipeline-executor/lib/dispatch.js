@@ -361,7 +361,7 @@ export async function runStage(args, deps) {
     let structured;
     if (stage.role) {
       const request = await buildRequest({
-        label: `forge ${stageId}`,
+        label: `tool-creator ${stageId}`,
         personaPath: stage.role.persona,
         tools: stage.role.tools,
         maxTokens: stage.role.maxTokens,
@@ -382,7 +382,7 @@ export async function runStage(args, deps) {
         while (queue.length > 0) {
           const lens = queue.shift();
           const request = await buildRequest({
-            label: `forge ${stageId} lens ${lens}`,
+            label: `tool-creator ${stageId} lens ${lens}`,
             personaPath: fan.lensPersona,
             tools: fan.lensTools,
             maxTokens: fan.lensMaxTokens,
@@ -405,7 +405,7 @@ export async function runStage(args, deps) {
       // Synthesis receives the lens artifact PATHS, never the payloads.
       const pathsList = fan.lenses.map((lens) => `- ${lensArtifacts.get(lens)}`).join('\n');
       const synthRequest = await buildRequest({
-        label: `forge ${stageId} synthesis`,
+        label: `tool-creator ${stageId} synthesis`,
         personaPath: fan.synthesis.persona,
         tools: fan.synthesis.tools,
         maxTokens: fan.synthesis.maxTokens,

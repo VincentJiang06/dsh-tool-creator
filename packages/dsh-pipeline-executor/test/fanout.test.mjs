@@ -42,8 +42,8 @@ test('fanout: 5 confined lens dispatches + synthesis; executor writes every lens
   assert.equal(subagents.calls.length, 6);
   const lensCalls = subagents.calls.slice(0, 5);
   const synthCall = subagents.calls[5];
-  assert.deepEqual(lensCalls.map((c) => c.request.label).sort(), LENSES.map((l) => `forge battery lens ${l}`).sort());
-  assert.equal(synthCall.request.label, 'forge battery synthesis');
+  assert.deepEqual(lensCalls.map((c) => c.request.label).sort(), LENSES.map((l) => `tool-creator battery lens ${l}`).sort());
+  assert.equal(synthCall.request.label, 'tool-creator battery synthesis');
 
   // Concurrency cap NEVER exceeded. (SPEC allows sequential-or-capped, so
   // the deterministic invariant is the upper bound; whether both workers
@@ -113,7 +113,7 @@ test('a failing lens fails the stage fail-closed: ledgered, synthesis never disp
     runStage({ stage: 'battery' }, makeDeps(fx, { subagents })),
     (e) => e.code === CODES.ROLE_NO_OUTPUT,
   );
-  assert.ok(!subagents.calls.some((c) => c.request.label === 'forge battery synthesis'), 'no synthesis after a lens failure');
+  assert.ok(!subagents.calls.some((c) => c.request.label === 'tool-creator battery synthesis'), 'no synthesis after a lens failure');
   const entries = await readLedger(join(fx.ws, 'evidence-ledger.jsonl'));
   assert.equal(entries[0].error, CODES.ROLE_NO_OUTPUT);
   assert.equal(entries[0].artifactPath, null, 'no stage artifact from a broken battery');

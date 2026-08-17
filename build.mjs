@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * dsh-forge single-source build: src/ → dist/{preset/, profile-patch.yml,
+ * dsh-tool-creator single-source build: src/ → dist/{preset/, profile-patch.yml,
  * install.sh, hashes.json}. Deterministic: sorted walks, no timestamps in
  * output. The charter exists ONCE (src/preset/charter.md) and is injected
  * into both planes — the web preset persona and the headless profile patch —
@@ -34,10 +34,10 @@ for (const dir of ['manifest', 'roles', 'targets', 'schemas', 'validators', 'ref
 
 // ---- headless plane: profile patch from the SAME charter ------------------
 const patchPersona = charter.split('\n').map((l) => (l.length ? `      ${l}` : '')).join('\n');
-writeFileSync(join(DIST, 'profile-patch.yml'), `# dsh-forge headless/terminal variant — GENERATED from the same charter as
+writeFileSync(join(DIST, 'profile-patch.yml'), `# dsh-tool-creator headless/terminal variant — GENERATED from the same charter as
 # the web preset (single source; do not hand-edit). Apply as a profile patch
 # layer: terminal sessions cannot join agent presets, so this approximates
-# the forge composition at the profile level. Web sessions should use the
+# the tool-creator composition at the profile level. Web sessions should use the
 # real preset instead.
 - id: agent-default-model
   config:
@@ -50,7 +50,7 @@ writeFileSync(join(DIST, 'profile-patch.yml'), `# dsh-forge headless/terminal va
     persona: |-
 ${patchPersona}
 # The Claude-marketplace bundle registers global-layer cc_* tools and skills
-# that leak into every scope, including forge role subagents; forge runs
+# that leak into every scope, including tool-creator role subagents; tool-creator runs
 # disable it (DECISION D5).
 - id: claude-marketplace
   disabled: true
@@ -70,9 +70,9 @@ writeFileSync(join(DIST, 'hashes.json'), `${JSON.stringify(hashes, null, 2)}\n`)
 
 // ---- installer ------------------------------------------------------------
 writeFileSync(join(DIST, 'install.sh'), `#!/usr/bin/env bash
-# dsh-forge installer — copies the preset into the user preset root and
+# dsh-tool-creator installer — copies the preset into the user preset root and
 # verifies every file hash. --verify-only checks dist/ integrity without
-# installing. GENERATED; source of truth is the dsh-forge repo.
+# installing. GENERATED; source of truth is the dsh-tool-creator repo.
 set -euo pipefail
 HERE="$(cd "$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
 DEST="\${DSH_HOME:-$HOME/.dsh}/.agent-presets/${PRESET_ID}"

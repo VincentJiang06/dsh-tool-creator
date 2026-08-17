@@ -10,7 +10,7 @@ pinned by the manifest), the executor — never the model — writes the stage
 artifact from the child's structured return, a mechanical gate (`execFile`
 argv, no shell) passes verdict, and every attempt is recorded in an
 append-only, machine-written evidence ledger (`evidence-ledger.jsonl`, all
-sha256 computed from disk bytes). dsh-forge is the first consumer.
+sha256 computed from disk bytes). dsh-tool-creator is the first consumer.
 
 ## Tools
 

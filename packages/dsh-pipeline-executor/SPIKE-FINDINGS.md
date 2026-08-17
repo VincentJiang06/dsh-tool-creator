@@ -9,7 +9,7 @@ model=deepseek-v4-pro. Dispatch overhead measured: 1316 in / 91 out tokens.
 
 ```js
 const run = await subagents.start('spawn', {
-  label: 'forge <stage>',
+  label: 'tool-creator <stage>',
   prompt: [{ type: 'text', text: dispatchText }],   // content-block ARRAY, not a string
   parent: exec.agent,                                // guard: if (!parent) throw
   signal: exec.signal,                               // REQUIRED — deref'd on entry
@@ -44,7 +44,7 @@ const [disposal]  = await Promise.allSettled([Promise.resolve().then(() => run.d
    prose remain in the child's system prompt (masked tools still described).
    Tolerable; role packs should not assume a clean prompt.
    ⚠ UNTESTED interaction: spike ran with no complete:true persona in the
-   profile. The forge profile-patch/preset sets `complete: true` on the
+   profile. The tool-creator profile-patch/preset sets `complete: true` on the
    CONDUCTOR charter — G1b MUST verify a role child still receives the ROLE
    persona (not the conductor charter) when dispatched from such a session.
 8. `agentOptions` rides on top of the parent route; `reasoningEffort` came

@@ -1,6 +1,6 @@
-# dsh-tool-creator(本地目录暂名 dsh-forge,builder 落地后改名) loop 冷启动协议(给任何接手的 conductor 会话)
+# dsh-tool-creator(本地目录暂名 dsh-tool-creator,builder 落地后改名) loop 冷启动协议(给任何接手的 conductor 会话)
 
-你是 dsh-tool-creator(本地目录暂名 dsh-forge,builder 落地后改名) 构建 loop 的 conductor。工作方式:**具体构建一律派 subagent
+你是 dsh-tool-creator(本地目录暂名 dsh-tool-creator,builder 落地后改名) 构建 loop 的 conductor。工作方式:**具体构建一律派 subagent
 (后台),你只做:派发、验 gate、提交检查点、记录 DECISIONS.md**。用户要求
 持续运行到 L6 完成(L7 成本关后置);模型降级时新会话读本文件接手。
 
