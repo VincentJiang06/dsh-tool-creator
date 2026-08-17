@@ -19,7 +19,7 @@ import {
   sha256,
   validateManifest,
 } from '../lib/manifest.js';
-import { REPO_MANIFEST_PATH, REPO_SCHEMAS_DIR, fixtureManifest, grab } from './helpers.mjs';
+import { REPO_ENGINEER_PROMPT_PATH, REPO_MANIFEST_PATH, REPO_SCHEMAS_DIR, fixtureManifest, grab } from './helpers.mjs';
 
 // ---------------------------------------------------------------------------
 // The shipped manifest is the contract: it must pass, exactly as on disk.
@@ -102,16 +102,30 @@ const VARS = {
   STAGE: 'alpha',
   ATTEMPT: '2',
   GATE_LOG_PREV: '- Previous attempt gate log: /ws/gate-logs/alpha.attempt1.log',
+  PRESET_DIR: '/abs/preset',
 };
 
 test('renderTemplate substitutes the full vocabulary', () => {
   const rendered = renderTemplate(
-    'w={{WORKSPACE}} t={{TARGET}} a={{ARTIFACT}} s={{STAGE}} n={{ATTEMPT}}\n{{GATE_LOG_PREV}}',
+    'w={{WORKSPACE}} t={{TARGET}} a={{ARTIFACT}} s={{STAGE}} n={{ATTEMPT}} p={{PRESET_DIR}}\n{{GATE_LOG_PREV}}',
     VARS,
     'tmpl',
   );
-  assert.equal(rendered, 'w=/ws t=plugin a=/ws/artifacts/x.json s=alpha n=2\n- Previous attempt gate log: /ws/gate-logs/alpha.attempt1.log');
-  assert.deepEqual(TEMPLATE_VARS, ['WORKSPACE', 'TARGET', 'ARTIFACT', 'STAGE', 'ATTEMPT', 'GATE_LOG_PREV']);
+  assert.equal(rendered, 'w=/ws t=plugin a=/ws/artifacts/x.json s=alpha n=2 p=/abs/preset\n- Previous attempt gate log: /ws/gate-logs/alpha.attempt1.log');
+  assert.deepEqual(TEMPLATE_VARS, ['WORKSPACE', 'TARGET', 'ARTIFACT', 'STAGE', 'ATTEMPT', 'GATE_LOG_PREV', 'PRESET_DIR']);
+});
+
+test('the shipped engineer.md prompt renders the two validator self-check commands absolutely (G3-F3)', async () => {
+  const template = await readFile(REPO_ENGINEER_PROMPT_PATH, 'utf8');
+  const rendered = renderTemplate(template, VARS, 'manifest/prompts/engineer.md');
+  // The skill target pack's §5 promises the dispatch prompt spells these out
+  // with absolute paths and --target-dir <WS>/build — pinned here.
+  assert.ok(rendered.includes(
+    'python3 /abs/preset/validators/validate_report.py /ws/artifacts/evidence-dossier.json --target-dir /ws/build',
+  ), 'validate_report self-check command rendered absolute');
+  assert.ok(rendered.includes(
+    'python3 /abs/preset/validators/validate_structure.py /ws/artifacts/structure-contract.json --target-dir /ws/build --check-files',
+  ), 'validate_structure self-check command rendered absolute');
 });
 
 test('renderTemplate renders GATE_LOG_PREV empty on attempt 1', () => {
@@ -212,6 +226,15 @@ test('PipelineError coerces an unknown code to MANIFEST_INVALID (fail-closed)', 
   const error = new PipelineError('NOT_A_CODE', 'x');
   assert.equal(error.code, CODES.MANIFEST_INVALID);
   assert.ok(error.remedy.length > 0);
+});
+
+test('PipelineError accepts a sharper remedy override; junk overrides fall back to the default', () => {
+  const sharp = new PipelineError(CODES.DISPATCH_FAILED, 'x', { remedy: 'do THIS instead' });
+  assert.equal(sharp.remedy, 'do THIS instead');
+  assert.match(sharp.toModelText(), /remedy: do THIS instead/);
+  for (const junk of ['', 42, null]) {
+    assert.equal(new PipelineError(CODES.DISPATCH_FAILED, 'x', { remedy: junk }).remedy, REMEDIES[CODES.DISPATCH_FAILED], String(junk));
+  }
 });
 
 // ---------------------------------------------------------------------------

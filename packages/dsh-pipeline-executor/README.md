@@ -28,6 +28,25 @@ sha256 computed from disk bytes). dsh-tool-creator is the first consumer.
 | `maxConcurrentDispatches` | `2` | fanout (battery) lens dispatch cap, clamped to an integer 1–4 |
 | `dispatchTimeoutMs` | `1800000` | wall-clock backstop per child dispatch |
 
+**Dispatch prompt template variables** — the complete `{{VAR}}` vocabulary a
+`dispatch.promptTemplate` file may use (an unknown or unsupplied variable is
+rejected fail-closed as `MANIFEST_INVALID`):
+
+| variable | value |
+|---|---|
+| `{{WORKSPACE}}` | the calling session's workspace dir (absolute) |
+| `{{TARGET}}` | the `pipeline_stage` `target` argument, or `unspecified` |
+| `{{ARTIFACT}}` | the stage artifact's absolute path |
+| `{{STAGE}}` / `{{ATTEMPT}}` | stage id / 1-based attempt number |
+| `{{GATE_LOG_PREV}}` | attempt >1: a pointer line to the previous gate log (attempt 1: empty) |
+| `{{PRESET_DIR}}` | the executor's **resolved absolute** `baseDir` — lets a prompt spell out preset-shipped commands absolutely, e.g. `python3 {{PRESET_DIR}}/validators/validate_report.py … --target-dir {{WORKSPACE}}/build` |
+
+**Ledger `tokens` field:** the summed host
+`tokenMeter.measure(childSession).totalTokens` across the attempt's children
+(measured between each child's settlement and disposal via the run handle's
+`localAgent.session`). When the meter or ANY child session is unreachable the
+field is `null` — honest-null, never a partial sum, never fabricated.
+
 **Path resolution in production:** the manifest and its referenced files are
 preset-dir-relative so the pipeline travels with the preset copy. The plugin
 row's config must therefore carry an ABSOLUTE `baseDir` written by the
@@ -59,8 +78,15 @@ optional).
 ## Verification status
 
 - `npm test` (node --test, no harness, no network, fakes injected via the
-  functions-only `_seams` config seam) — green, plus three killed mutations
-  (`test/MUTATIONS.md`).
-- Live dsh boot (G1b) — NOT yet run; `lib/index.js` carries the
-  VERIFICATION LIMIT note. SPEC.md `## Deviations` records the
-  SPEC↔SPIKE-FINDINGS reconciliations.
+  functions-only `_seams` config seam) — green, plus killed mutations
+  (`test/MUTATIONS.md`). Since 0.1.1 the fakes validate every mounted tool's
+  execute return against its declared `output.schema`, so the G1b
+  schema-violation class dies offline.
+- Live dsh boot (G1b, 2026-08-17) — GREEN; one live bug found and fixed
+  (execute returns are host-validated against `output.schema`), now pinned by
+  an offline regression test. SPEC.md `## Deviations` records the
+  SPEC↔SPIKE-FINDINGS reconciliations and the 0.1.1 polish notes. One
+  VERIFICATION LIMIT remains in `lib/index.js`: the tokenMeter adapter's
+  `run.localAgent.session` path is proven against the installed host source
+  but not yet observed live — the next boot must confirm a non-null `tokens`
+  ledger field.

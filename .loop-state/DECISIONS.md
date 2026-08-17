@@ -77,3 +77,14 @@ line. QUEUED (next executor touch, likely L4 integration): battery stage
 summary should carry verdict=<battery>/<re_audit> parsed from the
 decision-record the executor itself writes — makes the charter's branch A
 automatic.
+
+## L2-A executor 0.1.1 (2026-08-17): 82/82, four changes + one self-caught vacuity
+Fakes now validate execute returns against the shared TEXT_OUTPUT_SCHEMA
+bytes (0.1.0 bug shape regression-pinned); {{PRESET_DIR}} closes G3-F3 (both
+validator commands rendered absolute in engineer DISPATCH CONTEXT, test-pinned);
+tokenMeter adapter LIVE via measure(session) between settlement and disposal,
+all-children-or-null aggregation (partial sum = wrong number); DISPATCH_FAILED
+remedy split on tools.restrict refusals. Four mutation probes red-then-restored;
+the PRESET_DIR probe SURVIVED initially → relative-baseDir test added (the
+discipline works on its own tests). VERIFICATION LIMIT queued: first live run
+must observe a non-null tokens ledger field. L2 COMPLETE.

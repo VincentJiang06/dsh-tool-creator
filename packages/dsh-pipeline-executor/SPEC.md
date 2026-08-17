@@ -148,3 +148,32 @@ builder must reconcile this spec against it and record deviations in
    execFile inherits the parent env (no `scrubbedParentEnv` — that seam
    lives in `@deepseek-ai/dsh-subprocess`, an extra peer this package does
    not yet declare). Open risk, recorded below in G1b terms.
+
+## 0.1.1 polish deviations (2026-08-17, post-G1b)
+
+10. **`{{PRESET_DIR}}` template variable (additive).** The dispatch-prompt
+    vocabulary gained `PRESET_DIR` = the executor's RESOLVED ABSOLUTE
+    `baseDir`, so prompts can spell out preset-shipped commands absolutely
+    (closes coherence finding G3-F3: the skill target pack's §5 promises the
+    engineer dispatch prompt carries the two validator self-check commands).
+11. **Ledger `tokens` is a NUMBER (or null), not `read()`'s shape.** G1b
+    proved the host meter is `tokenMeter.measure(session, requestHeader?)`,
+    not `read()`. The adapter measures each child's session
+    (`run.localAgent.session`, in-process spawn run shape) between settlement
+    and disposal and ledgers the SUM of `measure().totalTokens` — but only
+    when EVERY child of the attempt measured; otherwise `null` (a partial sum
+    is a wrong number). `requestHeader` is never passed (no guessed shapes).
+    VERIFICATION LIMIT: proven against installed host source, not yet
+    observed live (see lib/index.js).
+12. **DISPATCH_FAILED remedy split.** When `subagents.start`'s error matches
+    `tools.restrict` / `unknown global tool` (host `restrict()` refusing a
+    whitelist name at child start), the remedy names the manifest-whitelist/
+    deployment mismatch instead of the generic "check the spawn provider
+    row". Same taxonomy code; `PipelineError` gained a remedy override.
+13. **Offline fakes enforce Invariant 5.** `test/helpers.mjs` `mountTool`
+    validates every mounted tool's execute return against its declared
+    `output.schema` (additionalProperties-strict walk mirroring the host);
+    the exact 0.1.0 G1b bug shape (runStage's rich result returned verbatim)
+    is pinned as a regression test. The declared schema moved to the pure
+    module (`TEXT_OUTPUT_SCHEMA` in lib/manifest.js) so fakes and wiring
+    share one set of bytes.

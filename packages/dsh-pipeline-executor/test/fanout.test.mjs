@@ -119,6 +119,28 @@ test('a failing lens fails the stage fail-closed: ledgered, synthesis never disp
   assert.equal(entries[0].artifactPath, null, 'no stage artifact from a broken battery');
 });
 
+test('fanout tokens: summed measure().totalTokens across all six children; one unreachable child session → null, never a partial sum', async (t) => {
+  const fx = await makeFixture(t);
+
+  // All six children measurable → the ledger carries the SUM.
+  const subagents = makeFakeSubagents({ behavior: batteryBehavior });
+  await runStage({ stage: 'battery' }, makeDeps(fx, { subagents, measureTokens: () => 100 }));
+
+  // One lens run's handle lacks localAgent → its session is unreachable →
+  // the whole attempt is honest-null (a 5/6 sum would be a wrong number).
+  const partial = makeFakeSubagents({
+    behavior: (request, id) => ({
+      ...batteryBehavior(request),
+      noLocalAgent: request.label.endsWith('lens gaming'),
+    }),
+  });
+  await runStage({ stage: 'battery', attempt: 2 }, makeDeps(fx, { subagents: partial, measureTokens: () => 100 }));
+
+  const entries = await readLedger(join(fx.ws, 'evidence-ledger.jsonl'));
+  assert.equal(entries[0].tokens, 600, '5 lenses + synthesis, 100 each');
+  assert.equal(entries[1].tokens, null);
+});
+
 test('fanout.lensOutputSchema (additive field) replaces the permissive lens schema', async (t) => {
   const fx = await makeFixture(t, {
     mutate: (m) => { m.stages[1].fanout.lensOutputSchema = 'schemas/alpha-out.json'; },

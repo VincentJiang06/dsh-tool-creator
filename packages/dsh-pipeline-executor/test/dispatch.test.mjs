@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import { CODES, PipelineError, TEXT_OUTPUT_SCHEMA, sha256 } from '../lib/manifest.js';
 import { appendLedger, checkToolWhitelist, resolveSeams, runStage, statusReport, tailLines } from '../lib/dispatch.js';
 import {
@@ -169,6 +169,17 @@ test('confinement: SPIKE-shaped request — persona bytes, whitelist toolFilter,
   assert.equal(request.parent.id, 'parent-agent');
   assert.ok(request.signal instanceof AbortSignal, 'signal present (deref-safe)');
   assert.ok(!('descriptor' in request), 'descriptor is never passed');
+});
+
+test('PRESET_DIR renders ABSOLUTE even when the configured baseDir is relative', async (t) => {
+  const fx = await makeFixture(t);
+  const subagents = makeFakeSubagents();
+  const deps = makeDeps(fx, { subagents });
+  deps.options.baseDir = relative(process.cwd(), fx.preset); // test/dev fallback shape
+  await runStage({ stage: 'alpha' }, deps);
+  const { persona } = subagents.calls[0].request;
+  assert.ok(persona.includes(`Preset dir: ${fx.preset}`), 'resolved to the absolute preset dir');
+  assert.ok(!persona.includes(`Preset dir: ${deps.options.baseDir}\n`), 'never the raw relative value');
 });
 
 test('whitelist pre-validation: run_code and deployment-unknown tools are refused before dispatch', async (t) => {
@@ -516,4 +527,70 @@ test('the manifest cache is keyed by path+mtime and reused across stage runs', a
   await runStage({ stage: 'alpha' }, makeDeps(fx, { manifestCache }));
   await runStage({ stage: 'alpha', attempt: 2 }, makeDeps(fx, { manifestCache }));
   assert.equal(manifestCache.size, 1);
+});
+
+// ---------------------------------------------------------------------------
+// 9. Fake host mount — execute returns die offline on schema violation
+//    (BUILD.md Invariant 5; regression for the 0.1.0 G1b live bug)
+// ---------------------------------------------------------------------------
+
+test('REGRESSION (0.1.0 G1b): the fakes catch an execute return with keys beyond the declared output schema', async (t) => {
+  const fx = await makeFixture(t);
+
+  // The 0.1.0 bug shape, byte-for-byte: the tool returned runStage's RICH
+  // result ({summary, gateExit, ledgerLine, childSessionIds}) while declaring
+  // TEXT_OUTPUT_SCHEMA ({summary} only, additionalProperties: false). The
+  // live host rejected every extra key AFTER the stage had fully succeeded.
+  const buggy = mountTool({
+    name: 'pipeline_stage',
+    output: { schema: TEXT_OUTPUT_SCHEMA },
+    execute: () => runStage({ stage: 'alpha' }, makeDeps(fx)),
+  });
+  await assert.rejects(
+    buggy.execute({}, {}),
+    (e) => /is not a declared property \(additionalProperties: false\)/.test(e.message)
+      && /gateExit/.test(e.message)
+      && /ledgerLine/.test(e.message)
+      && /childSessionIds/.test(e.message),
+  );
+
+  // The 0.1.1 shape — exactly the declared {summary} — passes the same mount.
+  const fixed = mountTool({
+    name: 'pipeline_stage',
+    output: { schema: TEXT_OUTPUT_SCHEMA },
+    execute: async () => ({ summary: (await runStage({ stage: 'alpha', attempt: 2 }, makeDeps(fx))).summary }),
+  });
+  const value = await fixed.execute({}, {});
+  assert.match(value.summary, /^stage=alpha attempt=2 gateExit=0 /);
+});
+
+test('validateAgainstSchema: strict walk — both required dialects, nesting, type checks', () => {
+  // defineTool dialect: per-property required: true (TEXT_OUTPUT_SCHEMA shape).
+  assert.deepEqual(validateAgainstSchema({ summary: 'ok' }, TEXT_OUTPUT_SCHEMA), []);
+  assert.match(validateAgainstSchema({}, TEXT_OUTPUT_SCHEMA).join(';'), /missing required property/);
+  assert.match(validateAgainstSchema({ summary: 7 }, TEXT_OUTPUT_SCHEMA).join(';'), /must be a string/);
+
+  // outputSchema dialect: required as ARRAY + nested strict objects.
+  const nested = {
+    type: 'object',
+    additionalProperties: false,
+    required: ['inner'],
+    properties: {
+      inner: {
+        type: 'object',
+        additionalProperties: false,
+        properties: { n: { type: 'number' } },
+      },
+      list: { type: 'array', items: { type: 'string' } },
+    },
+  };
+  assert.deepEqual(validateAgainstSchema({ inner: { n: 1 }, list: ['a'] }, nested), []);
+  assert.match(validateAgainstSchema({ inner: { n: 1, rogue: true } }, nested).join(';'), /"return\.inner\.rogue" is not a declared property/);
+  assert.match(validateAgainstSchema({ inner: {}, list: ['a', 2] }, nested).join(';'), /"return\.list\[1\]" must be a string/);
+  assert.match(validateAgainstSchema('nope', nested).join(';'), /must be an object/);
+});
+
+test('mountTool refuses a tool with no declared output.schema', () => {
+  const error = grab(() => mountTool({ name: 'bare', execute: async () => ({}) }));
+  assert.match(error.message, /declares no output\.schema/);
 });
