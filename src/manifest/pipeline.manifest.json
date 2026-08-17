@@ -1,0 +1,99 @@
+{
+  "$comment": "dsh-forge pipeline manifest — the declarative control flow the dsh-pipeline-executor runs. This file IS the pipeline: stages, role confinement, gates, retries. The conductor model never sees or transmits it; the executor reads it from disk. Paths are preset-dir-relative. L0 draft — L1 implements the executor against exactly this shape; fields may only be added, never reinterpreted.",
+  "manifestVersion": 1,
+  "pipeline": "forge",
+  "defaults": {
+    "provider": "deepseek-official",
+    "model": "deepseek-v4-pro",
+    "retries": 2,
+    "workspaceLayout": {
+      "request": "request.md",
+      "artifacts": "artifacts/",
+      "build": "build/",
+      "gateLogs": "gate-logs/",
+      "ledger": "evidence-ledger.jsonl"
+    }
+  },
+  "stages": [
+    {
+      "id": "composer",
+      "role": {
+        "persona": "roles/composer.md",
+        "tools": ["read", "glob", "grep"],
+        "maxTokens": 16384
+      },
+      "dispatch": {
+        "promptTemplate": "manifest/prompts/composer.md",
+        "outputSchema": "schemas/skill-spec.json"
+      },
+      "artifact": "artifacts/skill-spec.json",
+      "gate": { "cmd": ["python3", "validators/validate_spec.py", "artifacts/skill-spec.json"] }
+    },
+    {
+      "id": "guidance",
+      "role": {
+        "persona": "roles/guidance.md",
+        "tools": ["read", "glob", "grep"],
+        "maxTokens": 16384
+      },
+      "dispatch": {
+        "promptTemplate": "manifest/prompts/guidance.md",
+        "outputSchema": "schemas/structure-contract.json"
+      },
+      "artifact": "artifacts/structure-contract.json",
+      "gate": { "cmd": ["python3", "validators/validate_structure.py", "artifacts/structure-contract.json", "--target-dir", "build"] }
+    },
+    {
+      "id": "engineer",
+      "role": {
+        "persona": "roles/engineer.md",
+        "tools": ["read", "write", "edit", "glob", "grep", "bash"],
+        "maxTokens": 65536
+      },
+      "dispatch": {
+        "promptTemplate": "manifest/prompts/engineer.md",
+        "outputSchema": "schemas/evidence-dossier.json"
+      },
+      "artifact": "artifacts/evidence-dossier.json",
+      "gate": {
+        "cmd": ["python3", "validators/validate_report.py", "artifacts/evidence-dossier.json", "--target-dir", "build"],
+        "then": ["python3", "validators/validate_structure.py", "artifacts/structure-contract.json", "--target-dir", "build", "--check-files"]
+      }
+    },
+    {
+      "id": "zipper",
+      "role": {
+        "persona": "roles/zipper.md",
+        "tools": ["read", "write", "edit", "glob", "grep"],
+        "maxTokens": 32768
+      },
+      "dispatch": {
+        "promptTemplate": "manifest/prompts/zipper.md",
+        "outputSchema": "schemas/compression-report.json"
+      },
+      "artifact": "artifacts/compression-report.json",
+      "gate": { "cmd": ["python3", "validators/validate_compression.py", "artifacts/compression-report.json"] }
+    },
+    {
+      "id": "battery",
+      "fanout": {
+        "$comment": "Five fresh lens attackers + one synthesis, per the battery role pack. Each lens is an independent dispatch; synthesis reads the union. Seeds are planted by the stage prompt from seeds/ before dispatch.",
+        "lenses": ["coherence", "gaming", "evidence", "reality", "foundation"],
+        "lensPersona": "roles/battery.md",
+        "lensTools": ["read", "glob", "grep", "bash", "web_search"],
+        "lensMaxTokens": 32768,
+        "synthesis": {
+          "persona": "roles/battery.md",
+          "tools": ["read", "glob", "grep"],
+          "maxTokens": 32768
+        }
+      },
+      "dispatch": {
+        "promptTemplate": "manifest/prompts/battery.md",
+        "outputSchema": "schemas/decision-record.json"
+      },
+      "artifact": "artifacts/decision-record.json",
+      "gate": { "cmd": ["python3", "validators/validate_decision.py", "artifacts/decision-record.json"] }
+    }
+  ]
+}
