@@ -48,3 +48,18 @@ template var + commands into prompts/engineer.md — AFTER G1b lands, to avoid
 installed-vs-repo drift mid-validation); F4 vendor/roles + scripts/ path rot
 fixed; plugin REQUIRED wording + baseline-delta carve-out added. Flags 1/4
 accepted as benign (noted), flag 5 out of quick-check scope.
+
+## L1 G1b (2026-08-17): GREEN — L1 complete
+All seven checks green from session-log/disk evidence: R1 decisive (complete
+conductor charter shadowed by name in child scope — 0 marker hits across 5
+children; role personas delivered); R2 branches identified live (tools.list
+ABSENT on rc.6 → degraded branch proven safe by negative 2; tokenMeter is
+measure() not read() → tokens:null disclosed, adapter = measure().totalTokens
+queued; cwd green); R3 additionalProperties:true accepted; ledger sha256s
+byte-exact vs recompute; fanout paths-only proven in synthesis prompt;
+negatives both dispatch-free. ONE live bug found+fixed+re-proven: host
+validates execute returns against output.schema → BUILD.md Invariant 5 added.
+Queued for executor 0.1.1 polish: fakes validate returns, {{PRESET_DIR}}
+template var + validator commands in engineer prompt (G3-F3 full fix),
+tokenMeter adapter, DISPATCH_FAILED remedy split. G1b kit + evidence kept in
+g1b/ (3-line ledger). Spend: well under ¥2.

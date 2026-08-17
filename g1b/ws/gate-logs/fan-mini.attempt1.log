@@ -1,0 +1,7 @@
+$ python3 /Users/vince/playground/dsh-tool-creator/g1b/validators/check_artifact.py artifacts/fan-mini.json
+--- stdout ---
+PASS: artifacts/fan-mini.json report='SYNTH-OK: read 2 lens artifacts: lens x ok; lens y ok'
+
+--- stderr ---
+
+--- exit 0 ---

@@ -129,7 +129,11 @@ export function apply(ctx, config = {}) {
   const guarded = (fn) => async (args, exec) => {
     try {
       const value = await fn(args, exec);
-      return { ...value, summary: clampBytes(value.summary, 4000) };
+      // G1b live finding: the host VALIDATES the execute return against
+      // output.schema (additionalProperties: false) — return EXACTLY the
+      // declared {summary} shape. runStage's richer facts (gateExit,
+      // ledgerLine, childSessionIds) stay library-internal for tests/callers.
+      return { summary: clampBytes(value.summary, 4000) };
     } catch (error) {
       ctx.logger?.warn?.(`pipeline-executor: ${failureText(error)}`);
       throw new Error(clampBytes(failureText(error), 4000));

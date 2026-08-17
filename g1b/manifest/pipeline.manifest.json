@@ -1,0 +1,85 @@
+{
+  "manifestVersion": 1,
+  "pipeline": "g1b-toy",
+  "defaults": {
+    "provider": "deepseek-official",
+    "model": "deepseek-v4-pro",
+    "retries": 1,
+    "workspaceLayout": {
+      "request": "request.md",
+      "artifacts": "artifacts/",
+      "build": "build/",
+      "gateLogs": "gate-logs/",
+      "ledger": "evidence-ledger.jsonl"
+    }
+  },
+  "stages": [
+    {
+      "id": "echo-a",
+      "role": {
+        "persona": "roles/role-a.md",
+        "tools": ["read"],
+        "maxTokens": 2048
+      },
+      "dispatch": {
+        "promptTemplate": "prompts/echo-a.md",
+        "outputSchema": "schemas/report.schema.json"
+      },
+      "artifact": "artifacts/echo-a.json",
+      "gate": {
+        "cmd": [
+          "python3",
+          "/Users/vince/playground/dsh-tool-creator/g1b/validators/check_artifact.py",
+          "artifacts/echo-a.json"
+        ]
+      }
+    },
+    {
+      "id": "fan-mini",
+      "fanout": {
+        "lenses": ["x", "y"],
+        "lensPersona": "roles/lens.md",
+        "lensTools": ["read"],
+        "lensMaxTokens": 1024,
+        "lensOutputSchema": "schemas/lens.schema.json",
+        "synthesis": {
+          "persona": "roles/synth.md",
+          "tools": ["read"],
+          "maxTokens": 2048
+        }
+      },
+      "dispatch": {
+        "promptTemplate": "prompts/fan-mini.md",
+        "outputSchema": "schemas/report.schema.json"
+      },
+      "artifact": "artifacts/fan-mini.json",
+      "gate": {
+        "cmd": [
+          "python3",
+          "/Users/vince/playground/dsh-tool-creator/g1b/validators/check_artifact.py",
+          "artifacts/fan-mini.json"
+        ]
+      }
+    },
+    {
+      "id": "bad-tool",
+      "role": {
+        "persona": "roles/role-a.md",
+        "tools": ["no_such_tool"],
+        "maxTokens": 512
+      },
+      "dispatch": {
+        "promptTemplate": "prompts/echo-a.md",
+        "outputSchema": "schemas/report.schema.json"
+      },
+      "artifact": "artifacts/bad-tool.json",
+      "gate": {
+        "cmd": [
+          "python3",
+          "/Users/vince/playground/dsh-tool-creator/g1b/validators/check_artifact.py",
+          "artifacts/bad-tool.json"
+        ]
+      }
+    }
+  ]
+}

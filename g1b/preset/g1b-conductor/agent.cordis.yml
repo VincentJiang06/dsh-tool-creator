@@ -1,0 +1,19 @@
+# G1b conductor preset: reproduces the PRODUCTION complete-persona layout for
+# R1 — a `@deepseek-ai/dsh-persona` row with `complete: true` in a standing
+# preset scope, exactly like the tool-creator/plugin-creator presets. The
+# session joins via dsh-g1b-conductor's agent/created hook (headless has no
+# web host to install the join); role children join the SAME standing scope
+# through dsh-subagent's applyChildComposition → agentPresets.composeFrom,
+# which is the production child path under test.
+- id: persona
+  name: '@deepseek-ai/dsh-persona'
+  config:
+    complete: true
+    includeRuntimeContext: false
+    text: |-
+      You are the CONDUCTOR of the G1b toy pipeline, powered by the {{model}} model. Your working directory is {{cwd}}.
+      Charter marker: G1B-CONDUCTOR-CHARTER-MARKER.
+
+      When asked to run a pipeline stage, call the pipeline_stage tool with the stage id given in the task; pass the attempt number and the target kind only when the task names them. Then report ONLY the tool result verbatim — no commentary, no summary of your own.
+      If the tool call fails, report the error text verbatim and stop. Never retry unless the task tells you to.
+      You never write files, never read role packs, and never relay role prose.

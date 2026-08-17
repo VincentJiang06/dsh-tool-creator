@@ -1,0 +1,14 @@
+{
+  "name": "dsh-g1b-conductor",
+  "version": "0.1.0",
+  "description": "G1b live-validation shim: joins the one-shot headless agent to the g1b-conductor agent preset (complete:true conductor persona). Deliberately ships NO dsh.bundle.patch so it stays a dependency-only package; the G1b --patch overlay mounts its row for validation runs only.",
+  "type": "module",
+  "main": "./lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": ["lib/"],
+  "keywords": ["dsh-plugin-shim"],
+  "license": "MIT"
+}

@@ -1,0 +1,8 @@
+{
+  "type": "object",
+  "properties": {
+    "finding": { "type": "string" }
+  },
+  "required": ["finding"],
+  "additionalProperties": true
+}

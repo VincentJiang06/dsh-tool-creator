@@ -1,0 +1,7 @@
+$ python3 /Users/vince/playground/dsh-tool-creator/g1b/validators/check_artifact.py artifacts/echo-a.json
+--- stdout ---
+PASS: artifacts/echo-a.json report='ROLE-A-OK: stage echo-a attempt 1'
+
+--- stderr ---
+
+--- exit 0 ---

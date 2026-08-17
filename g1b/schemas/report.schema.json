@@ -1,0 +1,8 @@
+{
+  "type": "object",
+  "properties": {
+    "report": { "type": "string" }
+  },
+  "required": ["report"],
+  "additionalProperties": false
+}

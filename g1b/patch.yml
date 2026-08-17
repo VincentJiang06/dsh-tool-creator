@@ -1,0 +1,26 @@
+# G1b live-validation overlay for `dsh --profile headless --patch <this file>`.
+# NOT resident: applied per run, after the profile's own layers.
+#
+# 1. Points the installed dsh-pipeline-executor row at the toy kit with
+#    ABSOLUTE paths (a patch replaces the row's whole config).
+# 2. Mounts the agent-preset machinery + the g1b join shim, reproducing the
+#    production complete-persona layout (R1): the g1b-conductor preset's
+#    standing scope pins a `complete: true` conductor persona; role children
+#    join that same scope via dsh-subagent's composeFrom.
+- id: pipeline-executor
+  config:
+    manifestPath: /Users/vince/playground/dsh-tool-creator/g1b/manifest/pipeline.manifest.json
+    baseDir: /Users/vince/playground/dsh-tool-creator/g1b
+    maxConcurrentDispatches: 2
+    dispatchTimeoutMs: 600000
+
+- insert:
+    - id: agent-presets
+      name: '@deepseek-ai/dsh-agent-presets'
+      config:
+        default: g1b-conductor
+
+    - id: g1b-preset-join
+      name: dsh-g1b-conductor
+      config:
+        preset: g1b-conductor

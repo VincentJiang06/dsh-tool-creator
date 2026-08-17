@@ -173,6 +173,18 @@ Two field incidents, one rule each:
   installing the plugin may require `dsh plugin add <peer>`. Mark a peer optional ONLY when the
   code path that imports it is itself conditional.
 
+**Invariant 5 — the live host validates every tool's EXECUTE RETURN VALUE against its declared
+`output.schema`.**
+
+Offline fakes almost never do, so this class survives a green unit suite and fires on the first
+real call. Field origin (dsh-pipeline-executor G1b, 2026-08-17): a tool declared
+`output: {schema: {summary: string, additionalProperties: false}}` but returned
+`{summary, gateExit, ledgerLine, childSessionIds}` — every extra key was rejected by the live
+host ("is not a declared property") AFTER the tool's work had fully succeeded, turning a correct
+stage run into a tool error. Mechanically: return EXACTLY the declared shape from `execute` (keep
+richer facts library-internal), and make your test fakes validate returns against the declared
+schema so the class dies offline.
+
 **Verify before you claim done.** You cannot run a real dsh boot from inside the sandbox, so there
 is no evidence available to you that these invariants hold. Therefore: (a) follow the rules above
 literally rather than reasoning about whether a given shape "should" work, and (b) record `E-L4`
