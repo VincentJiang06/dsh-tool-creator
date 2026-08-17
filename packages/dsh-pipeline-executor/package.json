@@ -1,0 +1,48 @@
+{
+  "name": "dsh-pipeline-executor",
+  "version": "0.1.0",
+  "description": "Declarative multi-agent pipeline executor for DeepSeek Harness (dsh): runs a manifest of confined role dispatches with mechanical gates and a machine-written evidence ledger. dsh 声明式多角色流水线执行器：按 manifest 派发受限子代理、机械门禁、机器写证据账本。",
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "pipeline",
+    "subagent",
+    "orchestration",
+    "evidence-ledger"
+  ],
+  "type": "module",
+  "main": "./lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./manifest": "./lib/manifest.js",
+    "./dispatch": "./lib/dispatch.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-tools": ">=0.1.0-rc.5",
+    "@deepseek-ai/schemastery": ">=3.18.0"
+  },
+  "dependencies": {}
+}

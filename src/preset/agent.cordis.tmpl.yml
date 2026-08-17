@@ -1,4 +1,4 @@
-# The `forge` agent preset: a THIN stage-stepper conductor over the
+# The `tool-creator` agent preset: a THIN stage-stepper conductor over the
 # dsh-pipeline-executor, which runs the five-role artifact pipeline
 # (composer → guidance → engineer → zipper → battery) from a declarative
 # manifest with per-role confinement.

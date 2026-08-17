@@ -1,7 +1,7 @@
 {
   "$comment": "dsh-forge pipeline manifest — the declarative control flow the dsh-pipeline-executor runs. This file IS the pipeline: stages, role confinement, gates, retries. The conductor model never sees or transmits it; the executor reads it from disk. Paths are preset-dir-relative. L0 draft — L1 implements the executor against exactly this shape; fields may only be added, never reinterpreted.",
   "manifestVersion": 1,
-  "pipeline": "forge",
+  "pipeline": "tool-creator",
   "defaults": {
     "provider": "deepseek-official",
     "model": "deepseek-v4-pro",

@@ -14,7 +14,7 @@ const ROOT = new URL('.', import.meta.url).pathname;
 const SRC = join(ROOT, 'src');
 const DIST = join(ROOT, 'dist');
 const PRESET = join(DIST, 'preset');
-const PRESET_ID = 'forge';
+const PRESET_ID = 'tool-creator';
 
 rmSync(DIST, { recursive: true, force: true });
 mkdirSync(PRESET, { recursive: true });

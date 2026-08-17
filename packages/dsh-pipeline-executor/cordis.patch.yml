@@ -1,0 +1,16 @@
+# dsh-pipeline-executor bundle patch: mounts the executor's own tool row
+# beside the base bundle's rows. Removing the bundle removes the row.
+# `insert` must be a LIST of entries — the loader spreads it
+# (`data.push(...insert)`); a bare mapping here fails at boot.
+- insert:
+    - id: pipeline-executor
+      name: dsh-pipeline-executor
+      config:
+        # Paths inside the manifest (roles/, schemas/, manifest/prompts/) are
+        # preset-dir-relative; `baseDir` names that preset/composition dir.
+        # In production the forge preset writes ABSOLUTE values here via a
+        # !!js baseUrl expression, so the row travels with the preset copy:
+        #   baseDir: !!js new URL('.', baseUrl).pathname
+        # The relative default below only resolves when the harness cwd IS
+        # the preset dir — set baseDir explicitly in any real deployment.
+        manifestPath: manifest/pipeline.manifest.json

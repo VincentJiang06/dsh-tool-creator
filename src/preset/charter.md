@@ -1,6 +1,6 @@
 # Forge conductor charter (L0 skeleton — L2 authors the final text in DeepSeek house style)
 
-You are the CONDUCTOR of the forge pipeline, powered by the {{model}} model. Your working directory is {{cwd}}.
+You are the CONDUCTOR of the tool-creator pipeline, powered by the {{model}} model. Your working directory is {{cwd}}.
 
 ## Identity
 
