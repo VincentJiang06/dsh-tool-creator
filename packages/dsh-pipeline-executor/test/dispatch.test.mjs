@@ -4,7 +4,15 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import { CODES, PipelineError, TEXT_OUTPUT_SCHEMA, sha256 } from '../lib/manifest.js';
-import { appendLedger, checkToolWhitelist, resolveSeams, runStage, statusReport, tailLines } from '../lib/dispatch.js';
+import {
+  appendLedger,
+  checkToolWhitelist,
+  resolveSeams,
+  runStage,
+  statusReport,
+  tailLines,
+  verdictSuffixFromRecord,
+} from '../lib/dispatch.js';
 import {
   ALPHA_SCHEMA,
   ROLE_ALPHA,
@@ -343,6 +351,80 @@ test('appendLedger is append-only with 1-based line numbers', async (t) => {
   assert.equal(await appendLedger(path, { a: 3 }), 3);
   const entries = await readLedger(path);
   assert.deepEqual(entries.map((e) => e.a), [1, 2, 3]);
+});
+
+// ---------------------------------------------------------------------------
+// 3b. Verdict passthrough (0.1.2): decision-record stages only, fail-soft
+// ---------------------------------------------------------------------------
+
+const ACCEPTANCE = { battery_verdict: 'clean', re_audit_verdict: 'industrial' };
+
+test('verdict present: a green decision-record stage carries verdict=<battery>/<re_audit> on the fact line', async (t) => {
+  const fx = await makeFixture(t, { mutate: (m) => { m.stages[0].artifact = 'artifacts/decision-record.json'; } });
+  const out = await runStage({ stage: 'alpha' }, makeDeps(fx, {
+    subagents: makeFakeSubagents({ behavior: { structured: { acceptance: ACCEPTANCE, final_verdict: 'done' } } }),
+  }));
+  assert.match(out.summary, /^stage=alpha attempt=1 gateExit=0 artifact=\S+ childSessions=child-1 ledger=1 verdict=clean\/industrial$/);
+});
+
+test('verdict present via the REAL battery path: fanout synthesis record, executor-written, parsed from disk', async (t) => {
+  const fx = await makeFixture(t, { mutate: (m) => { m.stages[1].artifact = 'artifacts/decision-record.json'; } });
+  const subagents = makeFakeSubagents({
+    behavior: (request) => (request.label.includes('synthesis')
+      ? { structured: { acceptance: { battery_verdict: 'breaches_found', re_audit_verdict: 'candidate' } } }
+      : { structured: { lens: 'x', findings: [] } }),
+  });
+  const out = await runStage({ stage: 'battery' }, makeDeps(fx, { subagents }));
+  assert.match(out.summary, / verdict=breaches_found\/candidate$/);
+  // The suffix reflects the DISK artifact the executor wrote from synthesis.
+  const record = JSON.parse(await readFile(join(fx.ws, 'artifacts', 'decision-record.json'), 'utf8'));
+  assert.equal(record.acceptance.battery_verdict, 'breaches_found');
+});
+
+test('verdict absent: the trigger is the artifact FILENAME — same acceptance payload on another artifact adds nothing', async (t) => {
+  const fx = await makeFixture(t); // artifact stays artifacts/alpha.json
+  const out = await runStage({ stage: 'alpha' }, makeDeps(fx, {
+    subagents: makeFakeSubagents({ behavior: { structured: { acceptance: ACCEPTANCE } } }),
+  }));
+  assert.ok(!out.summary.includes(' verdict='), 'no verdict token on a non-decision-record stage');
+  assert.match(out.summary, /ledger=1$/);
+});
+
+test('verdict fail-soft: malformed records omit the suffix, never guess, never throw', async (t) => {
+  const fx = await makeFixture(t, { mutate: (m) => { m.stages[0].artifact = 'artifacts/decision-record.json'; } });
+  const malformed = [
+    { acceptance: 'not-an-object' },
+    { acceptance: { battery_verdict: 42, re_audit_verdict: 'industrial' } },
+    { acceptance: { battery_verdict: 'clean breaches', re_audit_verdict: 'industrial' } }, // space would corrupt the fact line
+    { no_acceptance_at_all: true },
+  ];
+  for (const [i, structured] of malformed.entries()) {
+    const out = await runStage({ stage: 'alpha', attempt: 1 + (i % 3) }, makeDeps(fx, {
+      subagents: makeFakeSubagents({ behavior: { structured } }),
+    }));
+    assert.ok(!out.summary.includes(' verdict='), `malformed case ${i} must omit the verdict`);
+    assert.equal(out.gateExit, 0, `malformed case ${i} stays a normal green stage`);
+  }
+});
+
+test('verdict withheld on a red gate: only gate-validated records are cited', async (t) => {
+  const fx = await makeFixture(t, { mutate: (m) => { m.stages[0].artifact = 'artifacts/decision-record.json'; } });
+  const out = await runStage({ stage: 'alpha' }, makeDeps(fx, {
+    subagents: makeFakeSubagents({ behavior: { structured: { acceptance: ACCEPTANCE } } }),
+    execFileImpl: makeFakeExecFile({ behavior: { code: 3, stderr: 'fold violated\n' } }),
+  }));
+  assert.equal(out.gateExit, 3);
+  assert.ok(!out.summary.includes(' verdict='), 'a red gate never carries a verdict');
+});
+
+test('verdictSuffixFromRecord: the fail-soft matrix, unit-level', () => {
+  assert.equal(verdictSuffixFromRecord(JSON.stringify({ acceptance: ACCEPTANCE })), ' verdict=clean/industrial');
+  assert.equal(verdictSuffixFromRecord('NOT JSON {'), '');
+  assert.equal(verdictSuffixFromRecord(JSON.stringify({})), '');
+  assert.equal(verdictSuffixFromRecord(JSON.stringify({ acceptance: { battery_verdict: 'clean' } })), '');
+  assert.equal(verdictSuffixFromRecord(JSON.stringify({ acceptance: { battery_verdict: '', re_audit_verdict: 'draft' } })), '');
+  assert.equal(verdictSuffixFromRecord(JSON.stringify({ acceptance: { battery_verdict: 'a/b', re_audit_verdict: 'draft' } })), '', 'a slash inside a value would corrupt the pair format');
+  assert.equal(verdictSuffixFromRecord(JSON.stringify({ acceptance: { battery_verdict: 'x'.repeat(65), re_audit_verdict: 'draft' } })), '', 'oversized token refused');
 });
 
 // ---------------------------------------------------------------------------

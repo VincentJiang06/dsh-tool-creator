@@ -236,6 +236,44 @@ async function dispatchChild(subagents, request, measureTokens) {
   return { id: run.id, structured: result.structured, tokens };
 }
 
+/**
+ * The artifact basename that marks a stage as producing a decision record.
+ * The verdict passthrough triggers on THIS filename — mechanical, never on
+ * stage position or stage id (a renamed/reordered pipeline must not silently
+ * gain or lose the behavior).
+ */
+export const DECISION_RECORD_BASENAME = 'decision-record.json';
+
+/**
+ * Values that may ride the summary fact line. The acceptance enums are
+ * single lowercase words; anything outside this shape (spaces, newlines,
+ * `=`/`/` separators) would corrupt the machine-parseable line, so it is
+ * treated as malformed and OMITTED — fail-soft, never guessed.
+ */
+const VERDICT_TOKEN = /^[A-Za-z_-]{1,64}$/;
+
+/**
+ * Parse an executor-written decision-record artifact's text and return the
+ * ` verdict=<battery_verdict>/<re_audit_verdict>` summary suffix, or '' when
+ * anything about it is unparseable/malformed (fail-soft: the summary then
+ * simply carries no verdict and the conductor charter's fallback line
+ * applies). Pure and exported so the fail-soft matrix is unit-testable.
+ */
+export function verdictSuffixFromRecord(text) {
+  try {
+    const acceptance = JSON.parse(text)?.acceptance;
+    const battery = acceptance?.battery_verdict;
+    const reAudit = acceptance?.re_audit_verdict;
+    if (typeof battery === 'string' && VERDICT_TOKEN.test(battery)
+      && typeof reAudit === 'string' && VERDICT_TOKEN.test(reAudit)) {
+      return ` verdict=${battery}/${reAudit}`;
+    }
+  } catch {
+    // fall through — unparseable is omitted, never guessed
+  }
+  return '';
+}
+
 /** Last `n` lines of a text blob (gate-log tail for red results). */
 export function tailLines(text, n = 20) {
   const lines = String(text).split('\n');
@@ -398,6 +436,7 @@ export async function runStage(args, deps) {
   });
 
   let gateLogText = '';
+  let verdictSuffix = '';
   try {
     // ---- dispatch ---------------------------------------------------------
     let structured;
@@ -498,6 +537,20 @@ export async function runStage(args, deps) {
     facts.gateExit = gateExit;
     facts.gateLogPath = gateLogPath;
     facts.gateLogSha256 = sha256(await readFile(gateLogPath));
+
+    // ---- verdict passthrough (0.1.2): decision-record stages only ---------
+    // Trigger is the manifest-declared artifact FILENAME, and only a
+    // gate-validated (exit 0) record ever carries its verdicts into the
+    // summary — the charter cites gate-validated artifacts, nothing weaker.
+    // The bytes are re-read from DISK (never the in-memory structured value):
+    // the summary reports what the artifact says, not what the child said.
+    if (gateExit === 0 && stage.artifact.split(/[\\/]/u).pop() === DECISION_RECORD_BASENAME) {
+      try {
+        verdictSuffix = verdictSuffixFromRecord(await readFile(artifactPath, 'utf8'));
+      } catch {
+        verdictSuffix = ''; // fail-soft: unreadable artifact → no verdict, never a guess
+      }
+    }
   } catch (error) {
     // Evidence of the failed attempt: dispatch-phase-and-later failures are
     // ledgered BEFORE the tool call fails (a ledger failure outranks them).
@@ -517,7 +570,7 @@ export async function runStage(args, deps) {
 
   let summary =
     `stage=${stageId} attempt=${attempt} gateExit=${facts.gateExit} artifact=${facts.artifactPath} ` +
-    `childSessions=${facts.childSessionIds.join(',')} ledger=${ledgerLine}`;
+    `childSessions=${facts.childSessionIds.join(',')} ledger=${ledgerLine}${verdictSuffix}`;
   if (facts.gateExit !== 0) {
     summary += `\n--- gate log tail (${facts.gateLogPath}) ---\n${tailLines(gateLogText, 20)}`;
   }

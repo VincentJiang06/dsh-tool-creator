@@ -88,3 +88,51 @@ remedy split on tools.restrict refusals. Four mutation probes red-then-restored;
 the PRESET_DIR probe SURVIVED initially → relative-baseDir test added (the
 discipline works on its own tests). VERIFICATION LIMIT queued: first live run
 must observe a non-null tokens ledger field. L2 COMPLETE.
+
+## L4 integration (2026-08-17): evidence SHIPS mechanically — GREEN
+assemble_manifest.py (stdlib, --selftest 1 green + 3 sanity + 13/13 traps) is
+the ONLY writer of acceptance-manifest.json; every field from machine/gated
+sources (ledger, decision-record, dossier, lens artifacts, build-tree walk) —
+evidence assembly never passes through a model. Refusal classes: fold mismatch
+(ANY disagreement with recomputed min-fold, both directions), measured=true
+without both parseable rates, silent-limit suppression (final guard re-checks
+every not_run layer is named in limits[]), plus symlinks/mixed-ledger/missing
+harness/breaches-with-zero-counts. Disclosed-not-guessed: dshVersion "unknown"
++ limits line; ledger-timing line (sha pins the pre-battery-line ledger — the
+assembler runs INSIDE the battery gate); kit-staging line (the two validator
+re-checks need validators/+artifacts/ staged at the artifact root; bare trees
+fail them VISIBLY). Battery gate chain: `then` slot was free, so
+validate_decision → then assemble_manifest directly — NO battery_gate.py
+wrapper (dispatch.js `then` = exactly one follow-on, runs only on cmd exit 0,
+its exit IS the gate verdict → refused assembly = red battery gate). Wrapper
+only becomes necessary if a THIRD command ever joins a chain.
+Executor 0.1.2 (88/88, +6): battery summary carries verdict=<battery>/<re_audit>
+parsed fail-soft from the DISK decision-record — trigger is artifact BASENAME
+decision-record.json (never stage id/position), green gate only (L2-B honest-
+verdict rule), token guard /^[A-Za-z_-]{1,64}$/. Charter branch A verified BY
+READING: "- If the battery stage's summary text carries a verdict value, copy
+it unchanged." — fires automatically on the new format; charter untouched.
+Note: the copied value is the battery/re_audit PAIR, not the folded level —
+consistent with the charter's own prohibition on conductor-computed verdicts
+(gateExit=0 attests the fold held inside the record).
+scan_symbols.py (--selftest 1 green + 1 sanity + 6/6 traps; real-host smoke:
+executor's own lib PASS, 2 pkgs + 2 named imports proven): slopsquatting/
+hallucinated-API gate vs ~/.dsh/profiles/node_modules/@deepseek-ai. WIRING
+DECISION: manifest has NO conditional gates (validateManifest: static
+cmd/then; `target` feeds prompts only) → NOT forced into the engineer gate;
+shipped as a battery-stage tool, advertised in prompts/battery.md with the
+{{PRESET_DIR}} absolute-command convention (plugin targets only; exit 2 =
+not-a-plugin = skip, not finding). False-negative bounds documented in-file
+(export * → open surface = disclosed skip; unknown/CJS surface treated open —
+never a false accusation).
+Tests: repo 12/12 (+assembly.test.mjs: synthetic ws → assembler → packaging
+copy → reverify --skip-commands GREEN; fold-mismatch refusal exit 1, nothing
+written), executor 88/88, seven validator selftests green, build 32 files
+hashed (+2), install --verify-only green, dist copies selftest green, edited
+manifest passes the executor's own fail-closed loader.
+LATENT HAZARD (pre-existing, all six gate commands incl. the new then): gate
+argv paths like validators/… are preset-dir-relative in the manifest but
+execFile cwd=workspace — first live run would red every gate unless the
+preset dir is the cwd or paths are resolved/rewritten at mount. g1b sidestepped
+it with absolute paths. Fix belongs with the L5 live-run prep, one change
+covers all six commands uniformly.

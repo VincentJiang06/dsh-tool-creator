@@ -93,7 +93,11 @@
         "outputSchema": "schemas/decision-record.json"
       },
       "artifact": "artifacts/decision-record.json",
-      "gate": { "cmd": ["python3", "validators/validate_decision.py", "artifacts/decision-record.json"] }
+      "gate": {
+        "$comment": "L4 chain: the fold gate first, then the MECHANICAL evidence assembler — `then` runs only on validate_decision exit 0 (an acceptance manifest is never assembled from an invalid decision record), and its exit IS the gate verdict (a refused assembly is a red battery gate: evidence ships or the stage fails). --provider mirrors defaults.provider (the ledger pins roleModel but not provider).",
+        "cmd": ["python3", "validators/validate_decision.py", "artifacts/decision-record.json"],
+        "then": ["python3", "validators/assemble_manifest.py", "--workspace", ".", "--build-subdir", "build", "--out", "artifacts/acceptance-manifest.json", "--provider", "deepseek-official"]
+      }
     }
   ]
 }

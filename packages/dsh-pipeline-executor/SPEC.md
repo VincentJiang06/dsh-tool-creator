@@ -177,3 +177,20 @@ builder must reconcile this spec against it and record deviations in
     is pinned as a regression test. The declared schema moved to the pure
     module (`TEXT_OUTPUT_SCHEMA` in lib/manifest.js) so fakes and wiring
     share one set of bytes.
+
+## 0.1.2 L4-integration deviation (2026-08-17)
+
+14. **Battery verdict passthrough in the stage summary (additive).** When a
+    stage's manifest `artifact` BASENAME is `decision-record.json`
+    (mechanical filename trigger — never stage id or position) AND the gate
+    exited 0, the executor re-reads the artifact it itself wrote from DISK
+    and appends
+    ` verdict=<acceptance.battery_verdict>/<acceptance.re_audit_verdict>` to
+    the summary fact line. Fail-soft matrix: unparseable JSON, missing or
+    non-string fields, or values outside `/^[A-Za-z_-]{1,64}$/` (they would
+    corrupt the machine-parseable line) → suffix OMITTED, never guessed; a
+    red gate never carries a verdict (only gate-validated records are cited,
+    per the L2-B honest-verdict rule). Closes the L2-B queued item: the
+    conductor charter's close-out branch A ("If the battery stage's summary
+    text carries a verdict value, copy it unchanged.") now fires
+    automatically, charter file untouched.
