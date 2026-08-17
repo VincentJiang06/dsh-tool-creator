@@ -19,7 +19,7 @@
         "required": ["layer", "eval_kind", "cases_total", "cases_passed", "verdict", "notes"],
         "properties": {
           "layer": {"type": "string", "enum": ["E-L0", "E-L1", "E-L2", "E-L3", "E-L4", "E-L5"], "description": "syntax / single-case / module / under-pressure / workflow / institutional"},
-          "eval_kind": {"type": "string", "enum": ["capability", "regression"], "description": "E3: capability and regression have different lifecycles; graduating a saturated capability set into regression is legal"},
+          "eval_kind": {"type": "string", "enum": ["capability", "regression", "trigger"], "description": "E3: capability and regression have different lifecycles; graduating a saturated capability set into regression is legal"},
           "cases_total": {"type": "integer"},
           "cases_passed": {"type": "integer"},
           "verdict": {"type": "string", "enum": ["green", "partial", "red", "not_run"]},

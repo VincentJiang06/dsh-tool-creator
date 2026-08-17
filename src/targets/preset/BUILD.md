@@ -3,7 +3,7 @@
 You are reading this because your dispatch prompt named this file as the BUILD CONVENTION for the
 current run's build target. It is authoritative for **what the artifact IS, where its files go, and
 what the harness is**. It is not a role charter and it does not compete with one: your role pack
-(`vendor/roles/engineer.md`) still owns the judgment — red-first, layered evidence, evaluator
+(`roles/engineer.md`) still owns the judgment — red-first, layered evidence, evaluator
 calibration, pre-registered stops. Where this pack and the Structure Contract disagree about a
 path, the CONTRACT wins and the disagreement is a FINDING you report; where this pack and your role
 pack appear to disagree about discipline, your role pack wins.

@@ -22,7 +22,7 @@ artifacts; the conductor routes repairs (min() routing), not you.
 - [ ] Read the SkillSpec it derives from — especially `failure_cost` (calibrates your stop
       conditions, E9 shadow) and the **pressure narratives** (your day-one eval seed, E4).
 - [ ] Read `schemas/evidence-dossier.json` once, end to end. You will not restate its fields;
-      you will produce them. The L0 gate `scripts/validate_report` RE-RUNS your harness — a
+      you will produce them. The L0 gate `validators/validate_report.py` RE-RUNS your harness — a
       dossier with stale `command_output` fails, so build a harness that reruns cheap.
 
 ---
@@ -154,7 +154,7 @@ answers drop 30%+ — and your module tests run at 2K [LAB-ContextRot][ANT-Demys
 Mixing "probe the ceiling" and "protect what works" in one always-rerun suite is the #1 source
 of round starvation [ANT-Demystify][SELF-battery渐近].
 
-- [ ] Mark every set `capability` or `regression` in `eval_kind`.
+- [ ] Mark every set `capability`, `regression`, or `trigger` (activation batteries) in `eval_kind`.
 - [ ] Regression = two tiers: a core subset cheap enough that you ACTUALLY run it on every edit
       (seconds–minutes), plus a sentinel ring (incl. §6) on a declared rhythm.
 - [ ] A saturated capability set (pre-registered graduation: N consecutive runs ≥X%, new failures

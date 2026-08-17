@@ -3,7 +3,7 @@
 You are reading this because your dispatch prompt named this file as the BUILD CONVENTION for the
 current run's build target. It is authoritative for **what the artifact IS, where its files go, and
 what the harness is**. It is not a role charter and it does not compete with one: your role pack
-(`vendor/roles/engineer.md`) still owns the judgment — red-first, layered evidence, evaluator
+(`roles/engineer.md`) still owns the judgment — red-first, layered evidence, evaluator
 calibration, pre-registered stops. Where this pack and the Structure Contract disagree about a
 path, the CONTRACT wins and the disagreement is a FINDING you report; where this pack and your
 role pack appear to disagree about discipline, your role pack wins and this pack is being read too
@@ -119,9 +119,18 @@ other case class:
 - Both live in `evals/cases.json` with `eval_kind: "trigger"`, and the
   harness reports activation rates as their own line. A trigger case is
   graded on the DECISION to load, not on output quality.
-- If the deployment offers no mechanical way to observe activation, say so
-  in the layer notes and grade by the model's first action after the prompt
-  (loaded-the-skill vs answered-bare) — disclosed, never skipped.
+- **Design split, stated so no two engineers fork on it**: the trigger
+  battery needs a live model, so it is NOT part of `run_harness.sh`'s
+  deterministic exit. Protocol: run the battery live during the build, pin
+  the per-prompt outcomes to `evals/trigger-results.json` (prompt, expected,
+  observed, activated), and summarize rates in the dossier layer notes.
+  `run_harness.sh` verifies that file's SHAPE and rate arithmetic
+  (deterministic, offline, re-runnable) — it never re-runs activation. The
+  live evidence trail is the session log; the gate re-run covers shape only,
+  and the layer note says exactly that.
+- If the deployment offers no mechanical way to observe activation, grade by
+  the model's first action after the prompt (loaded-the-skill vs
+  answered-bare) — disclosed in the layer notes, never skipped.
 
 ## 4. Layer mapping for this target
 

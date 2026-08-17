@@ -38,3 +38,13 @@ DEFERRED until the in-flight L1 builder lands (writes absolute paths):
 - [ ] residual comment sweep: build.mjs header, profile-patch generated
       comments, charter.md H1, RESUME.md title cleanup, packages/SPEC.md refs
 - [ ] PLAN/DECISION docs in dsh-projects/creator-v2 + memory files
+
+## G3 coherence round (2026-08-17): PASS, 3 P2 fixed
+F1 eval_kind gained "trigger" (schema enum + role pack); F2 trigger-battery
+design split specified (live protocol + pinned results, harness verifies
+shape only — never re-runs activation); F3 skill pack no longer claims the
+dispatch prompt carries validator commands (queued: executor {{PRESET_DIR}}
+template var + commands into prompts/engineer.md — AFTER G1b lands, to avoid
+installed-vs-repo drift mid-validation); F4 vendor/roles + scripts/ path rot
+fixed; plugin REQUIRED wording + baseline-delta carve-out added. Flags 1/4
+accepted as benign (noted), flag 5 out of quick-check scope.

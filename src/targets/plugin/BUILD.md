@@ -3,7 +3,7 @@
 You are reading this because your dispatch prompt named this file as the BUILD CONVENTION for the
 current run's build target. It is authoritative for **what the artifact IS, where its files go, and
 what the harness is**. It is not a role charter and it does not compete with one: your role pack
-(`vendor/roles/engineer.md`) still owns the judgment — red-first, layered evidence, evaluator
+(`roles/engineer.md`) still owns the judgment — red-first, layered evidence, evaluator
 calibration, pre-registered stops. Where this pack and the Structure Contract disagree about a
 path, the CONTRACT wins and the disagreement is a FINDING you report; where this pack and your role
 pack appear to disagree about discipline, your role pack wins.
@@ -27,7 +27,7 @@ down.
 ```
 <WS>/build/
   package.json                     REQUIRED. the npm manifest + the `dsh` declaration (§3)
-  cordis.patch.yml                 REQUIRED when the plugin patches or inserts a Cordis row (§4)
+  cordis.patch.yml                 REQUIRED — every plugin ships at least the insert stanza (§4)
   README.md                        REQUIRED. install, configure, use, limits
   LICENSE                          REQUIRED. MIT, full text, real year + holder line
   lib/<domain>.js                  REQUIRED. PURE logic — ZERO @deepseek-ai imports (§2)
@@ -351,6 +351,12 @@ relative to `<WS>/build`, and the file must be non-empty — its size is measure
   commission. A structural improvement is a finding, not a unilateral edit.
 
 ---
+
+### Baseline-delta carve-out for this target
+The role pack's two-arm baseline rule presumes a model-facing artifact. A
+plugin's offline harness has no bare-model arm: record the delta as
+`n/a — code artifact; uplift is proven by the unit/golden layers` in the
+dossier notes rather than fabricating an arm. (Same rule for preset targets.)
 
 ## 9. Tool-registering plugins — the agent-facing discipline
 
