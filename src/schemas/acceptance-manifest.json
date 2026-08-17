@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AcceptanceManifest — evidence-in-artifact (D4, the category-creating standard)",
+  "description": "Machine-readable acceptance record shipped INSIDE every created artifact as acceptance-manifest.json at the artifact root. Any installer or directory (dsh-suite class) re-runs it with tools/reverify.mjs: 'verified on rc.6' becomes 're-verify on rc.7'. Field names are camelCase to match the evidence ledger lines the executor writes (packages/dsh-pipeline-executor/SPEC.md), which this manifest summarizes — NOT the snake_case of the pipeline-internal sibling schemas, because those never leave the factory and this file does. Uses only the draft-07-compatible keyword subset (type/required/enum/const/pattern/items/additionalProperties) so the zero-dependency validator embedded in tools/reverify.mjs can enforce it byte-for-byte; that embedded copy MUST stay identical to this file (drift-tested in test/acceptance.test.mjs).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["manifestVersion", "artifact", "provenance", "verdicts", "reverify", "baselineDelta", "limits"],
+  "properties": {
+    "manifestVersion": {"const": 1, "description": "Bump only with a migration note in docs/ACCEPTANCE-MANIFEST.md; verifiers fail closed on unknown versions."},
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "kind", "version", "rootHash", "files"],
+      "properties": {
+        "name": {"type": "string", "description": "artifact name as installed (skill dir name / npm package name / preset id)"},
+        "kind": {"type": "string", "enum": ["skill", "plugin", "preset"], "description": "the three target packs (D3)"},
+        "version": {"type": "string"},
+        "rootHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "sha256 (lowercase hex) of the canonical file-hash list: take every path in `files` sorted by byte order of its UTF-8 encoding; emit one line per path as '<sha256><space><space><path>'; join lines with '\\n' and terminate with a trailing '\\n'; hash the UTF-8 bytes of that text. Identical to `shasum -a 256` output format over the sorted list, so `shasum -a 256 -c` can double as a third-party checker."
+        },
+        "files": {
+          "type": "object",
+          "description": "COMPLETE coverage: every file under the artifact directory, recursively, EXCEPT acceptance-manifest.json itself at the root — mapping posix relative path (no leading './', '/' separators) to lowercase-hex sha256 of the file bytes. Symlinks are illegal in a manifested artifact (the verifier fails them). An on-disk file absent from this map is tampering, not tolerance.",
+          "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pipeline", "pipelineVersion", "createdAt", "dshVersion", "model", "evidenceLedgerSha256", "sessionIds"],
+      "properties": {
+        "pipeline": {"type": "string", "description": "e.g. 'dsh-tool-creator'"},
+        "pipelineVersion": {"type": "string"},
+        "createdAt": {"type": "string", "description": "ISO 8601 UTC timestamp (annotation only — the embedded validator does not parse dates)"},
+        "dshVersion": {"type": "string", "description": "pinned host version the battery ran under — the drift axis re-verification exists for"},
+        "model": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provider", "id"],
+          "properties": {
+            "provider": {"type": "string"},
+            "id": {"type": "string", "description": "e.g. 'deepseek-v4-pro' — verdicts are model-pinned; a base-model change expires them (A37)"}
+          }
+        },
+        "evidenceLedgerSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "sha256 of the executor's evidence-ledger.jsonl for this creation run. The ledger is written mechanically by dsh-pipeline-executor from disk bytes and session records — never model-transcribed (R5). The manifest carries its hash, not its contents: live-model evidence is pinned, not replayed."
+        },
+        "sessionIds": {"type": "array", "items": {"type": "string"}, "description": "child session ids from the ledger's childSessionIds — the audit trail into host session logs"}
+      }
+    },
+    "verdicts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reAudit", "battery", "effective", "batteryFindingsCounts"],
+      "properties": {
+        "reAudit": {"type": "string", "enum": ["draft", "candidate", "industrial"], "description": "= decision-record acceptance.re_audit_verdict"},
+        "battery": {"type": "string", "enum": ["clean", "breaches_found", "not_run"], "description": "= decision-record acceptance.battery_verdict"},
+        "effective": {
+          "type": "string",
+          "enum": ["draft", "candidate", "industrial"],
+          "description": "min-fold (O5): rank draft<candidate<industrial; battery caps the rank at clean→industrial, not_run→candidate, breaches_found→draft; effective = min(reAudit, cap). The verifier recomputes this fold and fails a manifest whose written effective exceeds it — a verdict above the fold is fabricated, not optimistic."
+        },
+        "batteryFindingsCounts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["p1", "p2", "p3"],
+          "properties": {
+            "p1": {"type": "integer"},
+            "p2": {"type": "integer"},
+            "p3": {"type": "integer"}
+          },
+          "description": "adversarial-battery finding counts by severity; all zero is legal only with battery=clean"
+        }
+      }
+    },
+    "reverify": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commands", "harnessPath"],
+      "properties": {
+        "commands": {
+          "type": "array",
+          "description": "The re-runnable acceptance: every command MUST be deterministic, offline, and side-effect-free inside the artifact tree (scratch goes to $REVERIFY_TMP; the verifier proves the tree unchanged by re-hashing after the run). Executed via execFile argv — no shell, no interpolation. Typically wraps the target's evals/run_harness.sh (targets/*/BUILD.md §evaluation harness).",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "argv", "cwd", "expectedExit", "description"],
+            "properties": {
+              "id": {"type": "string", "description": "unique within the manifest; the verifier reports 'cmd:<id>'"},
+              "argv": {"type": "array", "items": {"type": "string"}, "description": "argv[0] is the binary; non-empty (verifier-enforced)"},
+              "cwd": {"type": "string", "description": "relative to the artifact root; must resolve INSIDE it (verifier-enforced, no traversal)"},
+              "expectedExit": {"type": "integer"},
+              "description": {"type": "string"}
+            }
+          }
+        },
+        "harnessPath": {"type": "string", "description": "artifact-relative path to the battery harness file (the BUILD.md evals/run_harness.sh convention); must exist in `files`"},
+        "expectedSummaryRegex": {"type": "string", "description": "optional: a JS regex source that must match the concatenated stdout of all reverify commands in order — pins the harness summary line, not just exit codes"}
+      }
+    },
+    "baselineDelta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["measured", "note"],
+      "properties": {
+        "measured": {"type": "boolean", "description": "true iff a no-artifact baseline comparison was actually run this creation (LANDSCAPE (c).2)"},
+        "passRate": {"type": "number", "description": "required when measured=true (verifier-enforced); fraction in [0,1] of graded cases the artifact won"},
+        "baselineRate": {"type": "number", "description": "required when measured=true (verifier-enforced); fraction in [0,1] the no-artifact baseline won"},
+        "note": {"type": "string", "description": "when measured=false this MUST say why (non-empty, verifier-enforced) — n/a-with-reason is legal, a fabricated rate is not"}
+      }
+    },
+    "limits": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "honest verification limits, one per string — e.g. 'preset E-L4 not_run: mount guards, standing-mount behavior and session lock not observed outside a live host'. An empty array claims there are none; that claim is auditable."
+    }
+  }
+}
