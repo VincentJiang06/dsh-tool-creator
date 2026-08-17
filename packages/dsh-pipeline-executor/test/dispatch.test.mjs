@@ -3,10 +3,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
-import { CODES, PipelineError, TEXT_OUTPUT_SCHEMA, sha256 } from '../lib/manifest.js';
+import { CODES, DSML_SEQUENCE, PipelineError, TEXT_OUTPUT_SCHEMA, sha256 } from '../lib/manifest.js';
 import {
   appendLedger,
   checkToolWhitelist,
+  renderGateArgv,
   resolveSeams,
   runStage,
   statusReport,
@@ -351,6 +352,97 @@ test('appendLedger is append-only with 1-based line numbers', async (t) => {
   assert.equal(await appendLedger(path, { a: 3 }), 3);
   const entries = await readLedger(path);
   assert.deepEqual(entries.map((e) => e.a), [1, 2, 3]);
+});
+
+// ---------------------------------------------------------------------------
+// 3a. Gate argv templating (0.1.3): cwd = workspace, so the manifest spells
+//     preset paths {{PRESET_DIR}}-absolute — the executor renders EVERY argv
+//     element of cmd AND then; unknown tokens are refused pre-dispatch.
+// ---------------------------------------------------------------------------
+
+test('gate argv templating: {{PRESET_DIR}}/{{WORKSPACE}}/{{STAGE}}/{{ATTEMPT}}/{{ARTIFACT}} render ABSOLUTE in both cmd and then', async (t) => {
+  const fx = await makeFixture(t, {
+    mutate: (m) => {
+      m.stages[0].gate.cmd = ['python3', '{{PRESET_DIR}}/validators/check.py', '{{WORKSPACE}}/artifacts/alpha.json'];
+      m.stages[0].gate.then = [
+        'python3', '{{PRESET_DIR}}/validators/check2.py',
+        '--target-dir', '{{WORKSPACE}}/build',
+        '--stage', '{{STAGE}}', '--attempt', '{{ATTEMPT}}', '--artifact', '{{ARTIFACT}}',
+      ];
+    },
+  });
+  const execFileImpl = makeFakeExecFile();
+  const out = await runStage({ stage: 'alpha' }, makeDeps(fx, { execFileImpl }));
+  assert.equal(out.gateExit, 0);
+  assert.equal(execFileImpl.calls.length, 2);
+
+  // This assertion set kills mutation (d): unrendered argv would carry the
+  // literal {{…}} tokens into execFile instead of absolute paths.
+  assert.equal(execFileImpl.calls[0].file, 'python3', 'untemplated argv[0] passes through byte-identical');
+  assert.deepEqual(execFileImpl.calls[0].argv, [
+    join(fx.preset, 'validators', 'check.py'),
+    join(fx.ws, 'artifacts', 'alpha.json'),
+  ]);
+  assert.deepEqual(execFileImpl.calls[1].argv, [
+    join(fx.preset, 'validators', 'check2.py'),
+    '--target-dir', join(fx.ws, 'build'),
+    '--stage', 'alpha',
+    '--attempt', '1',
+    '--artifact', join(fx.ws, 'artifacts', 'alpha.json'),
+  ]);
+  for (const call of execFileImpl.calls) {
+    assert.ok(![call.file, ...call.argv].some((a) => a.includes('{{')), 'no unrendered token ever reaches execFile');
+  }
+});
+
+test('gate argv unknown token: MANIFEST_INVALID naming the token, NOTHING dispatched (cmd and then alike)', async (t) => {
+  // Unknown UPPERCASE token in cmd (the renderer's own vocabulary check).
+  const fxA = await makeFixture(t, {
+    mutate: (m) => { m.stages[0].gate.cmd = ['python3', '{{PRESETDIR}}/validators/check.py']; },
+  });
+  const subA = makeFakeSubagents();
+  await assert.rejects(
+    runStage({ stage: 'alpha' }, makeDeps(fxA, { subagents: subA })),
+    (e) => e instanceof PipelineError && e.code === CODES.MANIFEST_INVALID
+      && /\{\{PRESETDIR\}\}/.test(e.message) && /gate\.cmd for stage alpha\[1\]/.test(e.message),
+  );
+  assert.equal(subA.calls.length, 0, 'refused BEFORE any child dispatch');
+
+  // Out-of-vocabulary FORM in `then` (lowercase — the renderer regex does not
+  // even match it): must hard-error pre-dispatch, never a silent literal.
+  const fxB = await makeFixture(t, {
+    mutate: (m) => { m.stages[0].gate.then = ['check2', '{{workspace}}/build']; },
+  });
+  const subB = makeFakeSubagents();
+  const execB = makeFakeExecFile();
+  await assert.rejects(
+    runStage({ stage: 'alpha' }, makeDeps(fxB, { subagents: subB, execFileImpl: execB })),
+    (e) => e instanceof PipelineError && e.code === CODES.MANIFEST_INVALID
+      && /\{\{workspace\}\}/.test(e.message) && /gate\.then for stage alpha\[1\]/.test(e.message),
+  );
+  assert.equal(subB.calls.length, 0, 'a bad `then` token also refuses pre-dispatch');
+  assert.equal(execB.calls.length, 0, 'no gate command ran');
+});
+
+test('renderGateArgv unit: passthrough, rendering, DSML guard, out-of-vocabulary forms', () => {
+  const vars = {
+    WORKSPACE: '/ws', TARGET: 'plugin', ARTIFACT: '/ws/artifacts/x.json',
+    STAGE: 'alpha', ATTEMPT: '2', GATE_LOG_PREV: '', PRESET_DIR: '/preset',
+  };
+  // Untemplated argv passes through byte-identical (no path heuristics).
+  assert.deepEqual(renderGateArgv(['python3', '-m', 'json.tool'], vars, 'g'), ['python3', '-m', 'json.tool']);
+  assert.deepEqual(
+    renderGateArgv(['{{PRESET_DIR}}/v.py', '{{WORKSPACE}}/artifacts/x.json', '--attempt', '{{ATTEMPT}}'], vars, 'g'),
+    ['/preset/v.py', '/ws/artifacts/x.json', '--attempt', '2'],
+  );
+  // DSML in a gate argv element is rejected like any other interpolation site.
+  const dsml = grab(() => renderGateArgv([`x${DSML_SEQUENCE}y`], vars, 'g'));
+  assert.ok(dsml instanceof PipelineError && dsml.code === CODES.MANIFEST_INVALID && /DSML/.test(dsml.message));
+  // Mixed-case token: outside the renderer's match, caught by the leftover guard.
+  const mixed = grab(() => renderGateArgv(['{{Preset_Dir}}/v.py'], vars, 'g'));
+  assert.ok(mixed instanceof PipelineError && mixed.code === CODES.MANIFEST_INVALID);
+  assert.match(mixed.message, /\{\{Preset_Dir\}\}/);
+  assert.match(mixed.message, /g\[0\]/);
 });
 
 // ---------------------------------------------------------------------------

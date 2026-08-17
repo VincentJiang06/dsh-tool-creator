@@ -41,6 +41,17 @@ rejected fail-closed as `MANIFEST_INVALID`):
 | `{{GATE_LOG_PREV}}` | attempt >1: a pointer line to the previous gate log (attempt 1: empty) |
 | `{{PRESET_DIR}}` | the executor's **resolved absolute** `baseDir` — lets a prompt spell out preset-shipped commands absolutely, e.g. `python3 {{PRESET_DIR}}/validators/validate_report.py … --target-dir {{WORKSPACE}}/build` |
 
+**Gate argv templating (0.1.3):** the same `{{VAR}}` vocabulary is rendered
+into EVERY element of a stage gate's `cmd` and `then` argv before `execFile`.
+Gates run with cwd = workspace, so a manifest spells preset-shipped validator
+paths absolutely (`{{PRESET_DIR}}/validators/…`) and workspace paths as
+`{{WORKSPACE}}/artifacts/…` — a bare `validators/…` would ENOENT against the
+workspace cwd. Explicit templating, no path heuristics: untemplated elements
+pass through byte-identical. Any unresolved `{{…}}` token in a gate argv —
+unknown, unsupplied, or outside the vocabulary's uppercase form — is a
+fail-closed `MANIFEST_INVALID` naming the token, raised BEFORE anything is
+dispatched; the DSML guard applies to rendered argv too.
+
 **Ledger `tokens` field:** the summed host
 `tokenMeter.measure(childSession).totalTokens` across the attempt's children
 (measured between each child's settlement and disposal via the run handle's

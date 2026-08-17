@@ -75,3 +75,39 @@ Result: **KILLED — 3 failed / 70 passed.** Failing tests:
 
 Pristine `lib/` restored byte-identical (diff-verified against the backup);
 final `npm test`: 73/73 green.
+
+# 0.1.3 mutation kill — gate argv templating (2026-08-17)
+
+Same procedure: back up pristine `lib/` → single-point mutation → `npm test`
+(92 tests) → confirm RED, record failing names → restore (diff-verified
+byte-identical) → confirm green (92/92).
+
+## Mutation (d) — gate argv rendering disabled
+
+```diff
+@@ renderGateArgv @@
+ export function renderGateArgv(argv, vars, sourceName) {
++  return argv; // MUTATION (d): gate argv rendering disabled
+   return argv.map((arg, i) => {
+```
+
+Result: **KILLED — 4 failed / 88 passed.** Failing tests:
+
+1. gate argv templating: {{PRESET_DIR}}/{{WORKSPACE}}/{{STAGE}}/{{ATTEMPT}}/{{ARTIFACT}} render ABSOLUTE in both cmd and then
+   (execFile received the literal `{{…}}` tokens instead of absolute paths — both the cmd and then deep-equals)
+2. gate argv unknown token: MANIFEST_INVALID naming the token, NOTHING dispatched (cmd and then alike)
+   (`assert.rejects` never fired — the unknown token passed through silently)
+3. renderGateArgv unit: passthrough, rendering, DSML guard, out-of-vocabulary forms
+   (rendered deep-equal + DSML/leftover `grab` calls all returned instead of throwing)
+4. every shipped gate command renders through the argv templater: absolute paths, no leftover tokens (0.1.3)
+   (the shipped manifest's `{{PRESET_DIR}}/validators/…` elements surfaced unrendered)
+
+Why it dies: the templating tests assert on the argv **execFile actually
+received** (fake execFile call capture) and on the **shipped manifest bytes**,
+never on the renderer's return value alone — an executor that stops rendering
+cannot fake absolute gate paths.
+
+## Post-campaign state (0.1.3)
+
+Pristine `lib/` restored byte-identical (diff-verified against the backup);
+final `npm test`: 92/92 green.

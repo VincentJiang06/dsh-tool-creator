@@ -194,3 +194,24 @@ builder must reconcile this spec against it and record deviations in
     conductor charter's close-out branch A ("If the battery stage's summary
     text carries a verdict value, copy it unchanged.") now fires
     automatically, charter file untouched.
+
+## 0.1.3 gate-argv templating deviation (2026-08-17)
+
+15. **Gate argv is template-rendered before execFile** (fixes the latent
+    hazard flagged in `.loop-state/DECISIONS.md`, blocking L5: gates run with
+    cwd = workspace, so the manifest's preset-dir-relative validator paths
+    — `validators/…` — would ENOENT/red-fail EVERY gate on a live run; the
+    G1b kit sidestepped it with absolute paths). SPEC step 5's "execFile the
+    manifest's argv" now means the RENDERED argv: every element of `gate.cmd`
+    and `gate.then` goes through the same `renderTemplate` vocabulary the
+    dispatch prompts get ({{WORKSPACE}}, {{TARGET}}, {{ARTIFACT}}, {{STAGE}},
+    {{ATTEMPT}}, {{GATE_LOG_PREV}}, {{PRESET_DIR}}). Explicit templating, no
+    path heuristics — an untemplated element passes through byte-identical.
+    Fail-closed: an unknown `{{…}}` token — including forms outside the
+    renderer's uppercase match, e.g. `{{workspace}}` — is MANIFEST_INVALID
+    naming the token, never a silent literal argv; the DSML guard applies to
+    rendered argv too; rendering happens BEFORE dispatch, so a bad token in
+    `cmd` OR `then` refuses the stage while nothing has been dispatched.
+    The shipped manifest's gate commands (incl. the battery then-chain) now
+    spell validator paths `{{PRESET_DIR}}/validators/…` and workspace paths
+    `{{WORKSPACE}}/…`.

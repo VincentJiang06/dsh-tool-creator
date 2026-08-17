@@ -19,6 +19,7 @@ import {
   sha256,
   validateManifest,
 } from '../lib/manifest.js';
+import { renderGateArgv } from '../lib/dispatch.js';
 import { REPO_ENGINEER_PROMPT_PATH, REPO_MANIFEST_PATH, REPO_SCHEMAS_DIR, fixtureManifest, grab } from './helpers.mjs';
 
 // ---------------------------------------------------------------------------
@@ -126,6 +127,32 @@ test('the shipped engineer.md prompt renders the two validator self-check comman
   assert.ok(rendered.includes(
     'python3 /abs/preset/validators/validate_structure.py /ws/artifacts/structure-contract.json --target-dir /ws/build --check-files',
   ), 'validate_structure self-check command rendered absolute');
+});
+
+test('every shipped gate command renders through the argv templater: absolute paths, no leftover tokens (0.1.3)', async () => {
+  const doc = JSON.parse(await readFile(REPO_MANIFEST_PATH, 'utf8'));
+  let commands = 0;
+  for (const stage of doc.stages) {
+    for (const key of ['cmd', 'then']) {
+      const argv = stage.gate[key];
+      if (!argv) continue;
+      commands += 1;
+      const rendered = renderGateArgv(argv, VARS, `${stage.id}.gate.${key}`);
+      assert.equal(rendered[0], 'python3', `${stage.id}.gate.${key} spawns python3`);
+      assert.ok(
+        rendered[1].startsWith('/abs/preset/validators/'),
+        `${stage.id}.gate.${key} validator path renders {{PRESET_DIR}}-absolute, got "${rendered[1]}"`,
+      );
+      for (const arg of rendered) {
+        assert.ok(!arg.includes('{{'), `${stage.id}.gate.${key} fully rendered, got "${arg}"`);
+        // Uniformity: gates run with cwd = workspace, so every path-shaped
+        // argument must be absolute — a workspace-relative "artifacts/…"
+        // would be the exact ENOENT/file-not-found class this fixes.
+        if (arg.includes('/')) assert.ok(arg.startsWith('/'), `${stage.id}.gate.${key} path-shaped arg is absolute, got "${arg}"`);
+      }
+    }
+  }
+  assert.equal(commands, 7, 'five stage cmds + the engineer and battery then-chains');
 });
 
 test('renderTemplate renders GATE_LOG_PREV empty on attempt 1', () => {

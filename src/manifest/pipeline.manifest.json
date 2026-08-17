@@ -1,5 +1,5 @@
 {
-  "$comment": "dsh-forge pipeline manifest — the declarative control flow the dsh-pipeline-executor runs. This file IS the pipeline: stages, role confinement, gates, retries. The conductor model never sees or transmits it; the executor reads it from disk. Paths are preset-dir-relative. L0 draft — L1 implements the executor against exactly this shape; fields may only be added, never reinterpreted.",
+  "$comment": "dsh-forge pipeline manifest — the declarative control flow the dsh-pipeline-executor runs. This file IS the pipeline: stages, role confinement, gates, retries. The conductor model never sees or transmits it; the executor reads it from disk. File-reference paths (roles/, schemas/, prompts/) are preset-dir-relative. Gate argv elements are template-rendered by the executor (0.1.3) before execFile: gates run with cwd = workspace, so validator paths are spelled {{PRESET_DIR}}-absolute and workspace paths {{WORKSPACE}}-absolute. L0 draft — L1 implements the executor against exactly this shape; fields may only be added, never reinterpreted.",
   "manifestVersion": 1,
   "pipeline": "tool-creator",
   "defaults": {
@@ -27,7 +27,7 @@
         "outputSchema": "schemas/skill-spec.json"
       },
       "artifact": "artifacts/skill-spec.json",
-      "gate": { "cmd": ["python3", "validators/validate_spec.py", "artifacts/skill-spec.json"] }
+      "gate": { "cmd": ["python3", "{{PRESET_DIR}}/validators/validate_spec.py", "{{WORKSPACE}}/artifacts/skill-spec.json"] }
     },
     {
       "id": "guidance",
@@ -41,7 +41,7 @@
         "outputSchema": "schemas/structure-contract.json"
       },
       "artifact": "artifacts/structure-contract.json",
-      "gate": { "cmd": ["python3", "validators/validate_structure.py", "artifacts/structure-contract.json", "--target-dir", "build"] }
+      "gate": { "cmd": ["python3", "{{PRESET_DIR}}/validators/validate_structure.py", "{{WORKSPACE}}/artifacts/structure-contract.json", "--target-dir", "{{WORKSPACE}}/build"] }
     },
     {
       "id": "engineer",
@@ -56,8 +56,8 @@
       },
       "artifact": "artifacts/evidence-dossier.json",
       "gate": {
-        "cmd": ["python3", "validators/validate_report.py", "artifacts/evidence-dossier.json", "--target-dir", "build"],
-        "then": ["python3", "validators/validate_structure.py", "artifacts/structure-contract.json", "--target-dir", "build", "--check-files"]
+        "cmd": ["python3", "{{PRESET_DIR}}/validators/validate_report.py", "{{WORKSPACE}}/artifacts/evidence-dossier.json", "--target-dir", "{{WORKSPACE}}/build"],
+        "then": ["python3", "{{PRESET_DIR}}/validators/validate_structure.py", "{{WORKSPACE}}/artifacts/structure-contract.json", "--target-dir", "{{WORKSPACE}}/build", "--check-files"]
       }
     },
     {
@@ -72,7 +72,7 @@
         "outputSchema": "schemas/compression-report.json"
       },
       "artifact": "artifacts/compression-report.json",
-      "gate": { "cmd": ["python3", "validators/validate_compression.py", "artifacts/compression-report.json"] }
+      "gate": { "cmd": ["python3", "{{PRESET_DIR}}/validators/validate_compression.py", "{{WORKSPACE}}/artifacts/compression-report.json"] }
     },
     {
       "id": "battery",
@@ -95,8 +95,8 @@
       "artifact": "artifacts/decision-record.json",
       "gate": {
         "$comment": "L4 chain: the fold gate first, then the MECHANICAL evidence assembler — `then` runs only on validate_decision exit 0 (an acceptance manifest is never assembled from an invalid decision record), and its exit IS the gate verdict (a refused assembly is a red battery gate: evidence ships or the stage fails). --provider mirrors defaults.provider (the ledger pins roleModel but not provider).",
-        "cmd": ["python3", "validators/validate_decision.py", "artifacts/decision-record.json"],
-        "then": ["python3", "validators/assemble_manifest.py", "--workspace", ".", "--build-subdir", "build", "--out", "artifacts/acceptance-manifest.json", "--provider", "deepseek-official"]
+        "cmd": ["python3", "{{PRESET_DIR}}/validators/validate_decision.py", "{{WORKSPACE}}/artifacts/decision-record.json"],
+        "then": ["python3", "{{PRESET_DIR}}/validators/assemble_manifest.py", "--workspace", "{{WORKSPACE}}", "--build-subdir", "build", "--out", "{{WORKSPACE}}/artifacts/acceptance-manifest.json", "--provider", "deepseek-official"]
       }
     }
   ]

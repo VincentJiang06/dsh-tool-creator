@@ -26,6 +26,7 @@ import { dirname, join, resolve } from 'node:path';
 import {
   CODES,
   PipelineError,
+  TEMPLATE_VARS,
   assertNoDsml,
   clampBytes,
   loadManifest,
@@ -274,6 +275,32 @@ export function verdictSuffixFromRecord(text) {
   return '';
 }
 
+/**
+ * Render EVERY element of a gate argv through the dispatch-template renderer
+ * (0.1.3). Gates run with cwd = workspace, so a manifest spells preset-shipped
+ * validator paths as `{{PRESET_DIR}}/…` and workspace paths as
+ * `{{WORKSPACE}}/…` — the SAME variable vocabulary the prompts get. Explicit
+ * templating, no path heuristics: an untemplated element passes through
+ * byte-identical. Fail-closed on BOTH template sides (renderTemplate: unknown
+ * UPPERCASE token, DSML in a value or in the rendered text) AND on any
+ * leftover `{{…}}` form the vocabulary regex does not even match (e.g.
+ * lowercase `{{workspace}}`) — an unresolved token must never reach execFile
+ * as a literal argv element.
+ */
+export function renderGateArgv(argv, vars, sourceName) {
+  return argv.map((arg, i) => {
+    const rendered = renderTemplate(arg, vars, `${sourceName}[${i}]`);
+    const leftover = /\{\{[^{}]*\}\}/u.exec(rendered);
+    if (leftover) {
+      throw new PipelineError(
+        CODES.MANIFEST_INVALID,
+        `${sourceName}[${i}] carries unrenderable template token ${leftover[0]} — gate argv tokens must come from the vocabulary ${TEMPLATE_VARS.map((v) => `{{${v}}}`).join(', ')}`,
+      );
+    }
+    return rendered;
+  });
+}
+
 /** Last `n` lines of a text blob (gate-log tail for red results). */
 export function tailLines(text, n = 20) {
   const lines = String(text).split('\n');
@@ -364,6 +391,14 @@ export async function runStage(args, deps) {
   const templateText = await readPresetFile(baseDir, stage.dispatch.promptTemplate, `dispatch.promptTemplate (${stage.dispatch.promptTemplate})`);
   const contextBlock = renderTemplate(templateText, vars, `promptTemplate ${stage.dispatch.promptTemplate}`);
   const outputSchema = await loadOutputSchema(resolve(baseDir, stage.dispatch.outputSchema));
+
+  // Gate argv is rendered UP FRONT (0.1.3): a bad token in `cmd` OR `then`
+  // refuses the stage while NOTHING has been dispatched (MANIFEST_INVALID's
+  // remedy line promises "nothing was dispatched" — keep it true).
+  const gateCmd = renderGateArgv(stage.gate.cmd, vars, `gate.cmd for stage ${stageId}`);
+  const gateThen = stage.gate.then
+    ? renderGateArgv(stage.gate.then, vars, `gate.then for stage ${stageId}`)
+    : undefined;
 
   const provider = stage.provider ?? manifest.defaults.provider;
   const model = stage.model ?? manifest.defaults.model;
@@ -526,11 +561,11 @@ export async function runStage(args, deps) {
       }
     };
 
-    const first = await runCmd(stage.gate.cmd);
+    const first = await runCmd(gateCmd);
     let gateExit = first.code;
-    if (gateExit === 0 && stage.gate.then) {
+    if (gateExit === 0 && gateThen) {
       // `then` runs ONLY on a strict first-command success.
-      const second = await runCmd(stage.gate.then);
+      const second = await runCmd(gateThen);
       gateExit = second.code;
     }
     await writeFile(gateLogPath, gateLogText);
