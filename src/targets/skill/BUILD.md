@@ -103,6 +103,26 @@ The **red logs** live in `evals/red/` and their paths go into `red_light_history
 
 ---
 
+### 3.1 Trigger-precision battery (required for every skill target)
+
+A skill that never fires is silently worthless — the largest audited failure
+class in the wild (68% of published skills have descriptions too vague to
+ever trigger). So the corpus MUST include a trigger battery, graded like any
+other case class:
+
+- **Positive battery**: >=20 realistic prompts that SHOULD activate the
+  skill, drawn from the SkillSpec's pressure narratives plus paraphrases —
+  vary phrasing, language (中文/English if the domain is bilingual), and
+  indirection. Pass bar: >=90% activation.
+- **Negative battery**: >=10 adjacent-but-out-of-scope prompts that should
+  NOT activate. Pass bar: <=5% false-fire.
+- Both live in `evals/cases.json` with `eval_kind: "trigger"`, and the
+  harness reports activation rates as their own line. A trigger case is
+  graded on the DECISION to load, not on output quality.
+- If the deployment offers no mechanical way to observe activation, say so
+  in the layer notes and grade by the model's first action after the prompt
+  (loaded-the-skill vs answered-bare) — disclosed, never skipped.
+
 ## 4. Layer mapping for this target
 
 Use these when tagging cases, so a verdict per layer means the same thing across runs:

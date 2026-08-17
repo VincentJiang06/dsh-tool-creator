@@ -385,6 +385,12 @@ ones to disk. Design for it, don't discover it:
   earlier this session"), never as claims about the current context ("the image is still in your
   context") — the second becomes false the moment the host prunes old turns.
 
+- **Template-token hygiene (v4-pro)**: the DeepSeek chat template assigns
+  meaning to `<｜…｜>` special-token sequences (DSML). A tool result that
+  contains such a sequence — echoed file content, scraped text, error output —
+  collides with the wire grammar. Scan every model-facing string for the
+  two-character prefix `<｜` and replace or reject it, disclosed.
+
 ### 9.3 State keying — ask what the state is a property OF (field P1)
 
 One plugin instance serves MANY sessions in the dsh host. Before caching anything in `apply()`'s
