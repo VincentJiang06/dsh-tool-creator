@@ -246,6 +246,43 @@ async function dispatchChild(subagents, request, measureTokens) {
 export const DECISION_RECORD_BASENAME = 'decision-record.json';
 
 /**
+ * Mechanically stamp the pipeline's capability-level CONSTANT into a
+ * decision-record's structured object, IN PLACE, before the executor writes
+ * it to disk (0.1.6).
+ *
+ * The capability level of this pipeline is a STRUCTURAL CONSTANT, not a
+ * per-run model judgment: a machine factory adjudicates every gate by
+ * machine, its human veto reserved-but-not-exercised. The executor therefore
+ * records it the SAME way it records `sha256` from disk bytes — a structural
+ * fact, never invented content. This exists because battery synthesis
+ * authored `capability_level` NON-DETERMINISTICALLY: R3 wrote O-L3 (the record
+ * passed) and R2 wrote O-L0 (validator-rejected → retries → stopped_unmet)
+ * from the SAME installed doctrine. A pipeline constant must not depend on
+ * model compliance, so the executor makes the manifest constant authoritative.
+ *
+ * Conservative — it stamps only fields that ALREADY EXIST in shape and never
+ * fabricates gates: it overwrites the scalar `capability_level`, and sets
+ * `adjudicator: "machine"` on every existing gate object; if there is no
+ * `gates` array (or a differently-shaped record) it stamps just the
+ * `capability_level` scalar and leaves the rest untouched. A non-object
+ * (or a falsy level) is returned unchanged. Pure/in-place, exported for tests.
+ */
+export function stampCapabilityLevel(structured, capabilityLevel) {
+  if (!capabilityLevel || structured === null || typeof structured !== 'object' || Array.isArray(structured)) {
+    return structured;
+  }
+  structured.capability_level = capabilityLevel;
+  if (Array.isArray(structured.gates)) {
+    for (const gate of structured.gates) {
+      if (gate !== null && typeof gate === 'object' && !Array.isArray(gate)) {
+        gate.adjudicator = 'machine';
+      }
+    }
+  }
+  return structured;
+}
+
+/**
  * Values that may ride the summary fact line. The acceptance enums are
  * single lowercase words; anything outside this shape (spaces, newlines,
  * `=`/`/` separators) would corrupt the machine-parseable line, so it is
@@ -571,6 +608,20 @@ export async function runStage(args, deps) {
       facts.childSessionIds.push(synth.id);
       facts.childTokens.push(synth.tokens);
       structured = synth.structured;
+    }
+
+    // ---- capability-level mechanical stamp (0.1.6) ------------------------
+    // A STRUCTURAL-CONSTANT stamp (like sha256), NOT content invention: this
+    // machine factory's capability level is fixed, but battery synthesis
+    // authored it non-deterministically (R2 wrote O-L0 → validator-rejected →
+    // stopped_unmet; R3 wrote O-L3 → passed; same installed doctrine). So the
+    // executor overwrites capability_level to the manifest constant and sets
+    // every gate's adjudicator to "machine" before the record hits disk.
+    // Gated on the decision-record artifact FILENAME (the same mechanical
+    // trigger as the verdict passthrough — never stage id/position) AND on the
+    // manifest declaring capabilityLevel (absent → no stamping, back-compat).
+    if (manifest.capabilityLevel && stage.artifact.split(/[\\/]/u).pop() === DECISION_RECORD_BASENAME) {
+      stampCapabilityLevel(structured, manifest.capabilityLevel);
     }
 
     // ---- artifact: EXECUTOR-written from the structured return ------------

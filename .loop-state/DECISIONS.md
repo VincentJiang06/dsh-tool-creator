@@ -321,3 +321,14 @@ is unreliable; the fix is MECHANICAL: executor stamps capabilityLevel from
 manifest config into the decision-record (like it stamps sha256 — recording a
 structural constant, not inventing a judgment); validator requires O-L3+machine;
 synthesis stops authoring it. This directly serves 一次通过. Delegated.
+
+## L5 wall-clock first measurement (R3, 2026-08-19)
+Clean single-attempt: 62.4 min (composer 8.6 + guidance 9.5 + engineer 26.5 +
+zipper 0/SKIPPED + battery-a2 17.8). Two poles: engineer 26.5 (irreducible
+real code+30-fixture work) and battery 17.8 (3-way lens concurrency already
+on; 3 lenses @12288). Slightly OVER the <1h target. Levers for sub-60 (L7,
+gate-measured): engineer corpus-floor tuning (risky — B15 win came from深语料),
+composer/guidance → flash trial (composer 8.6→~3? guidance 9.5→~4?), battery
+lens cap trim. R2 provenance lesson LEDGERED: NEVER install mid-run — the
+per-line manifestSha256 fail-close (2 versions → refuse) is correct and caught
+my own violation; clean-workspace re-run is the remedy.

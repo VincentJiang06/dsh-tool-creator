@@ -2,6 +2,8 @@
   "$comment": "dsh-forge pipeline manifest — the declarative control flow the dsh-pipeline-executor runs. This file IS the pipeline: stages, role confinement, gates, retries. The conductor model never sees or transmits it; the executor reads it from disk. File-reference paths (roles/, schemas/, prompts/) are preset-dir-relative. Gate argv elements are template-rendered by the executor (0.1.3) before execFile: gates run with cwd = workspace, so validator paths are spelled {{PRESET_DIR}}-absolute and workspace paths {{WORKSPACE}}-absolute. L0 draft — L1 implements the executor against exactly this shape; fields may only be added, never reinterpreted.",
   "manifestVersion": 1,
   "pipeline": "tool-creator",
+  "capabilityLevel": "O-L3",
+  "capabilityLevel$comment": "MACHINE FACTORY (pipeline constant, not a per-run judgment): adjudication is ALWAYS machine; the human veto is reserved but NOT exercised in a headless run, disclosed as a limit. This is the O-series capability level of THIS pipeline, structurally fixed. The dsh-pipeline-executor (>=0.1.6) mechanically STAMPS this value into the battery decision-record (overwrites capability_level and sets every gate's adjudicator=machine) BEFORE the gate runs — the same way it stamps sha256 from disk bytes, recording a structural constant rather than inventing content. Reason it must be mechanical: battery synthesis authored capability_level non-deterministically — R2 wrote O-L0 (validator-rejected -> retries -> stopped_unmet), R3 wrote O-L3 (passed), from the SAME installed doctrine. A pipeline constant must not depend on model compliance. Absent this field, the executor performs NO stamping (back-compat).",
   "defaults": {
     "provider": "deepseek-official",
     "model": "deepseek-v4-pro",

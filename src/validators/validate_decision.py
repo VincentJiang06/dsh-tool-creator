@@ -9,7 +9,16 @@ battery's job. Python 3 stdlib only.
 Invariants enforced (see --selftest for the exhaustive, self-proving list):
   1. gates[]: any entry with verdict=="pass" must have non-empty
      options_rejected (O2: a pass with no rejected options is un-thought).
-  2. capability_level=="O-L0" => every gate's adjudicator must be "human".
+  2. MACHINE-FACTORY INVARIANT: a gate with adjudicator=="machine" requires
+     capability_level in {O-L3, O-L4}. A machine-adjudicated gate may NOT sit
+     under a human-judged level (O-L0/O-L1/O-L2) — the level would claim
+     "human judged this gate" while a machine did. Human-adjudicated records
+     stay valid at every level (the heritage human-run path is not broken for
+     a hypothetical human run). After the executor's 0.1.6 mechanical stamp
+     every record born by the pipeline is O-L3 + all-machine, so this passes
+     DETERMINISTICALLY; the rule only ever fires on a record that recombines a
+     machine gate with a human-judged level (the R2 O-L0/machine deadlock
+     class this whole change kills).
   3. acceptance: the min-fold cap.
      - battery_verdict in {breaches_found, not_run} => effective_verdict must
        NOT be "industrial" (capped at "candidate" or lower).
@@ -35,6 +44,12 @@ import json
 import sys
 
 VERDICT_ORDER = {"draft": 0, "candidate": 1, "industrial": 2}
+
+# Levels that assert "every gate was human-judged". A machine adjudicator is
+# illegal under any of these (machine-factory invariant, O7): a machine gate
+# requires O-L3+ where the battery auto-executes and the human veto is merely
+# reserved. O-L3/O-L4 permit BOTH machine and human adjudicators.
+HUMAN_JUDGED_LEVELS = {"O-L0", "O-L1", "O-L2"}
 
 
 def is_blank(value) -> bool:
@@ -67,8 +82,12 @@ def validate(data: dict) -> list:
         stage = g.get("stage", "?")
         if g.get("verdict") == "pass" and is_blank(g.get("options_rejected")):
             v.append(f"gates[{i}] (stage={stage}) verdict==pass but options_rejected is empty (un-thought signal)")
-        if capability_level == "O-L0" and g.get("adjudicator") != "human":
-            v.append(f"gates[{i}] (stage={stage}) capability_level==O-L0 requires adjudicator=='human', got {g.get('adjudicator')!r}")
+        if g.get("adjudicator") == "machine" and capability_level in HUMAN_JUDGED_LEVELS:
+            v.append(
+                f"gates[{i}] (stage={stage}) adjudicator=='machine' requires capability_level O-L3+ "
+                f"(machine factory: a machine-adjudicated gate cannot sit under a human-judged level), "
+                f"got capability_level={capability_level!r}"
+            )
 
     acceptance = data.get("acceptance") or {}
     battery_verdict = acceptance.get("battery_verdict")

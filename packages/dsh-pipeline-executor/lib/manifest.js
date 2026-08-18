@@ -225,6 +225,15 @@ export function validateManifest(doc) {
   if (doc.manifestVersion !== 1) throw invalid('manifestVersion', `must be the integer 1, got ${JSON.stringify(doc.manifestVersion)}`);
   checkString(doc.pipeline, 'pipeline');
 
+  // capabilityLevel (0.1.6, OPTIONAL): the pipeline's O-series capability
+  // CONSTANT the executor mechanically stamps into the decision-record. When
+  // present it must be an O-series level string (the decision-record enum
+  // O-L0..O-L4) — a garbage value would be stamped into a schema-enum field,
+  // so it fails closed here. ABSENT = no stamping (full back-compat).
+  if (doc.capabilityLevel !== undefined && !/^O-L[0-4]$/u.test(doc.capabilityLevel)) {
+    throw invalid('capabilityLevel', `must be an O-series level "O-L0".."O-L4" when present, got ${JSON.stringify(doc.capabilityLevel)}`);
+  }
+
   const d = doc.defaults;
   if (d === null || typeof d !== 'object') throw invalid('defaults', 'must be an object');
   checkString(d.provider, 'defaults.provider');
