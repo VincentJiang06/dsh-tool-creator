@@ -172,3 +172,14 @@ conductor edit). 93/93 executor, 12/12 repo, 7/7 selftests; 0.1.4 in web
 profile; dist reinstalled, hot-fix drift gone. Deployment note for docs: strict
 confinement additionally requires not installing own-scope subagent plugins
 (ya-subagent) in the serving profile.
+
+## Battery scale reduction (2026-08-18, user directive)
+R1-b battery a1 burned 464K tokens vs engineer's 143K — user: cut to
+engineer level. Three cuts in src (NOT installed mid-run): default lenses
+5→3 (coherence/gaming/reality; evidence+foundation opt-in via manifest for
+high-stakes), lensMaxTokens 32768→12288, synthesis kept 24576 (it emits the
+full decision record — R1-b's a1 ROLE_NO_OUTPUT at synthesis is under
+diagnosis; starving it would reproduce the guidance-class death), lens
+dispatch prompt now pins the attack surface to build/+spec with an explicit
+depth-over-breadth budget note. Install deferred until the in-flight run
+settles. Target: battery ≈ 150K.

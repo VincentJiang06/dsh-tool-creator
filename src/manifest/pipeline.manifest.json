@@ -19,7 +19,9 @@
       "id": "composer",
       "role": {
         "persona": "roles/composer.md",
-        "tools": ["read"],
+        "tools": [
+          "read"
+        ],
         "maxTokens": 24576
       },
       "dispatch": {
@@ -27,13 +29,21 @@
         "outputSchema": "schemas/skill-spec.json"
       },
       "artifact": "artifacts/skill-spec.json",
-      "gate": { "cmd": ["python3", "{{PRESET_DIR}}/validators/validate_spec.py", "{{WORKSPACE}}/artifacts/skill-spec.json"] }
+      "gate": {
+        "cmd": [
+          "python3",
+          "{{PRESET_DIR}}/validators/validate_spec.py",
+          "{{WORKSPACE}}/artifacts/skill-spec.json"
+        ]
+      }
     },
     {
       "id": "guidance",
       "role": {
         "persona": "roles/guidance.md",
-        "tools": ["read"],
+        "tools": [
+          "read"
+        ],
         "maxTokens": 40960
       },
       "dispatch": {
@@ -41,13 +51,26 @@
         "outputSchema": "schemas/structure-contract.json"
       },
       "artifact": "artifacts/structure-contract.json",
-      "gate": { "cmd": ["python3", "{{PRESET_DIR}}/validators/validate_structure.py", "{{WORKSPACE}}/artifacts/structure-contract.json", "--target-dir", "{{WORKSPACE}}/build"] }
+      "gate": {
+        "cmd": [
+          "python3",
+          "{{PRESET_DIR}}/validators/validate_structure.py",
+          "{{WORKSPACE}}/artifacts/structure-contract.json",
+          "--target-dir",
+          "{{WORKSPACE}}/build"
+        ]
+      }
     },
     {
       "id": "engineer",
       "role": {
         "persona": "roles/engineer.md",
-        "tools": ["read", "write", "edit", "bash"],
+        "tools": [
+          "read",
+          "write",
+          "edit",
+          "bash"
+        ],
         "maxTokens": 65536
       },
       "dispatch": {
@@ -56,15 +79,32 @@
       },
       "artifact": "artifacts/evidence-dossier.json",
       "gate": {
-        "cmd": ["python3", "{{PRESET_DIR}}/validators/validate_report.py", "{{WORKSPACE}}/artifacts/evidence-dossier.json", "--target-dir", "{{WORKSPACE}}/build"],
-        "then": ["python3", "{{PRESET_DIR}}/validators/validate_structure.py", "{{WORKSPACE}}/artifacts/structure-contract.json", "--target-dir", "{{WORKSPACE}}/build", "--check-files"]
+        "cmd": [
+          "python3",
+          "{{PRESET_DIR}}/validators/validate_report.py",
+          "{{WORKSPACE}}/artifacts/evidence-dossier.json",
+          "--target-dir",
+          "{{WORKSPACE}}/build"
+        ],
+        "then": [
+          "python3",
+          "{{PRESET_DIR}}/validators/validate_structure.py",
+          "{{WORKSPACE}}/artifacts/structure-contract.json",
+          "--target-dir",
+          "{{WORKSPACE}}/build",
+          "--check-files"
+        ]
       }
     },
     {
       "id": "zipper",
       "role": {
         "persona": "roles/zipper.md",
-        "tools": ["read", "write", "edit"],
+        "tools": [
+          "read",
+          "write",
+          "edit"
+        ],
         "maxTokens": 32768
       },
       "dispatch": {
@@ -72,20 +112,36 @@
         "outputSchema": "schemas/compression-report.json"
       },
       "artifact": "artifacts/compression-report.json",
-      "gate": { "cmd": ["python3", "{{PRESET_DIR}}/validators/validate_compression.py", "{{WORKSPACE}}/artifacts/compression-report.json"] }
+      "gate": {
+        "cmd": [
+          "python3",
+          "{{PRESET_DIR}}/validators/validate_compression.py",
+          "{{WORKSPACE}}/artifacts/compression-report.json"
+        ]
+      }
     },
     {
       "id": "battery",
       "fanout": {
-        "$comment": "Five fresh lens attackers + one synthesis, per the battery role pack. Each lens is an independent dispatch; synthesis reads the union. Seeds are planted by the stage prompt from seeds/ before dispatch.",
-        "lenses": ["coherence", "gaming", "evidence", "reality", "foundation"],
+        "$comment": "Battery scale is budgeted to ~engineer level (user directive 2026-08-18): THREE default lenses (coherence/gaming/reality — the concrete-defect catchers); evidence and foundation are opt-in for high-stakes runs by listing them here. Lens output capped at 12288; synthesis keeps 24576 (it emits the full decision record — starving it reproduces the guidance-class death). Seeds and PROVE-OR-FLAG discipline unchanged.",
+        "lenses": [
+          "coherence",
+          "gaming",
+          "reality"
+        ],
         "lensPersona": "roles/battery.md",
-        "lensTools": ["read", "bash", "web_search"],
-        "lensMaxTokens": 32768,
+        "lensTools": [
+          "read",
+          "bash",
+          "web_search"
+        ],
+        "lensMaxTokens": 12288,
         "synthesis": {
           "persona": "roles/battery.md",
-          "tools": ["read"],
-          "maxTokens": 32768
+          "tools": [
+            "read"
+          ],
+          "maxTokens": 24576
         }
       },
       "dispatch": {
@@ -95,8 +151,23 @@
       "artifact": "artifacts/decision-record.json",
       "gate": {
         "$comment": "L4 chain: the fold gate first, then the MECHANICAL evidence assembler — `then` runs only on validate_decision exit 0 (an acceptance manifest is never assembled from an invalid decision record), and its exit IS the gate verdict (a refused assembly is a red battery gate: evidence ships or the stage fails). --provider mirrors defaults.provider (the ledger pins roleModel but not provider).",
-        "cmd": ["python3", "{{PRESET_DIR}}/validators/validate_decision.py", "{{WORKSPACE}}/artifacts/decision-record.json"],
-        "then": ["python3", "{{PRESET_DIR}}/validators/assemble_manifest.py", "--workspace", "{{WORKSPACE}}", "--build-subdir", "build", "--out", "{{WORKSPACE}}/artifacts/acceptance-manifest.json", "--provider", "deepseek-official"]
+        "cmd": [
+          "python3",
+          "{{PRESET_DIR}}/validators/validate_decision.py",
+          "{{WORKSPACE}}/artifacts/decision-record.json"
+        ],
+        "then": [
+          "python3",
+          "{{PRESET_DIR}}/validators/assemble_manifest.py",
+          "--workspace",
+          "{{WORKSPACE}}",
+          "--build-subdir",
+          "build",
+          "--out",
+          "{{WORKSPACE}}/artifacts/acceptance-manifest.json",
+          "--provider",
+          "deepseek-official"
+        ]
       }
     }
   ]
