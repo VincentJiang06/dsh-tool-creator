@@ -275,3 +275,19 @@ domain / enforced discipline satisfies it for preset/plugin. Both were
 GATE-DESIGN defects surfaced by faithful conductor behavior — the value of
 running real cases. R4=clean pass banked; wall-clock <1h still unmeasured
 (R3 stopped at intake); R2/R3 both re-fireable now.
+
+## R3 refire (2026-08-19): two gate fixes VERIFIED live, third defect surfaced
+Intake gate (target-aware) PASSED the preset request — no false refusal.
+O-L3 doctrine VERIFIED: r3 decision-record shows capability_level=O-L3 +
+all-machine adjudicators (the R2 deadlock class is dead). zipper SKIPPED
+(skipped=True, target filter working). Four stages green a1
+(composer 65.7K / guidance 65.5K / engineer 187.6K / zipper 0). Battery a1
+gate-RED on a THIRD, deeper defect: assemble_manifest looked for artifact-root
+markers only at build/, but a preset's tree is build/preset/ (BUILD.md §1).
+Added artifact_root() helper (routes walk + identity to build/preset/ when
+markers are there; selftest still green) — but that surfaced the real preset
+EVIDENCE-MODEL gap: the harness lives at build/evals/ (creation-time tool,
+must not ship into the preset per BUILD.md), so it is not in the shipped
+tree. Handed to a subagent: preset harness is workspace-anchored for the
+command phase + disclosed as a limit; hash phase re-runnable from the shipped
+preset alone. R3 will stop_unmet this pass; resume its battery after the fix.

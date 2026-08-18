@@ -380,6 +380,22 @@ def _yaml_scalar(path: str, *fields: str) -> str | None:
     return None
 
 
+def artifact_root(build_dir: str) -> str:
+    """The artifact tree root. A preset target ships its self-contained
+    directory one level down at build/preset/ (targets/preset/BUILD.md §1:
+    the install unit must not land the harness/installer into $DSH_HOME), so
+    when build/ has no root marker but build/preset/ carries one, that
+    subdir is the tree root. All other targets keep the artifact at build/."""
+    def has_marker(d):
+        return any(os.path.isfile(os.path.join(d, m))
+                   for m in ("package.json", "preset.yml", "agent.cordis.yml", "SKILL.md"))
+    if not has_marker(build_dir):
+        sub = os.path.join(build_dir, "preset")
+        if os.path.isdir(sub) and has_marker(sub):
+            return sub
+    return build_dir
+
+
 def detect_identity(build_dir: str, decision: dict) -> tuple[str, str, str, list]:
     violations: list = []
     fallback_name = decision.get("target") if isinstance(decision.get("target"), str) else None
@@ -519,6 +535,10 @@ def assemble(workspace: str, build_subdir: str, out_path: str, provider: str, ds
     if not os.path.isdir(build_dir):
         return {}, [f"build dir missing at '{build_dir}'"]
 
+    # A preset target's self-contained tree sits at build/preset/; every other
+    # target keeps it at build/. The manifest describes the ARTIFACT tree.
+    tree_dir = artifact_root(build_dir)
+
     def load(name):
         path = os.path.join(artifacts_dir, name)
         try:
@@ -533,7 +553,7 @@ def assemble(workspace: str, build_subdir: str, out_path: str, provider: str, ds
     if violations:
         return {}, violations
 
-    files, walk_violations = walk_build(build_dir, os.path.abspath(out_path))
+    files, walk_violations = walk_build(tree_dir, os.path.abspath(out_path))
     violations.extend(walk_violations)
 
     entries, ledger_violations = read_ledger(ledger_path)
@@ -552,7 +572,7 @@ def assemble(workspace: str, build_subdir: str, out_path: str, provider: str, ds
     reverify, reverify_violations, kit_limits = build_reverify(dossier, files)
     violations.extend(reverify_violations)
 
-    name, kind, version, identity_violations = detect_identity(build_dir, decision)
+    name, kind, version, identity_violations = detect_identity(tree_dir, decision)
     violations.extend(identity_violations)
 
     limits = derive_limits(dossier) + kit_limits + prov_limits + [LEDGER_TIMING_LIMIT]
