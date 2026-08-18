@@ -249,6 +249,39 @@ builder must reconcile this spec against it and record deviations in
     stage is `targets: ["skill"]` (plugin/preset artifacts are code+config —
     no prose to compress; wall-clock directive 2026-08-18).
 
+## 0.1.6 capability-level mechanical stamp deviation (2026-08-19)
+
+18. **Capability-level mechanical stamp (additive manifest field +
+    decision-record stamp).** The manifest gained an OPTIONAL root field
+    `capabilityLevel` — validated fail-closed when present (must match
+    `/^O-L[0-4]$/`, the decision-record O-series enum; `MANIFEST_INVALID`
+    naming the field). When set AND a stage's `artifact` basename is
+    `decision-record.json` (the same mechanical filename trigger as the 0.1.2
+    verdict passthrough — never stage id/position), the executor STAMPS the
+    child's structured return BEFORE writing it to disk: it overwrites the
+    scalar `capability_level` to the manifest constant and sets
+    `adjudicator: "machine"` on every EXISTING gate object. This is a
+    structural-constant stamp (like the sha256 the ledger already records),
+    NOT content invention: this pipeline is a machine factory whose capability
+    level is fixed (battery auto-executes; human veto reserved-not-exercised),
+    but battery synthesis authored the field NON-DETERMINISTICALLY — R2 wrote
+    O-L0 (validator-rejected → retries → `stopped_unmet`), R3 wrote O-L3
+    (passed), from the SAME installed doctrine. A pipeline constant must not
+    depend on model compliance. Conservative: it stamps only fields that
+    already exist in shape and NEVER fabricates a `gates` array or gate
+    entries; a non-decision-record artifact, or a record whose structured
+    return is not a plain object, is untouched. Gated on the field being set,
+    so a manifest WITHOUT `capabilityLevel` gets zero stamping (full
+    back-compat; all pre-0.1.6 behavior unchanged). Paired validator change
+    (`validators/validate_decision.py`): the old "O-L0 ⇒ every adjudicator
+    human" rule became the machine-factory invariant — a gate with
+    `adjudicator=="machine"` requires `capability_level` in {O-L3, O-L4};
+    human-adjudicated records stay valid at every level (heritage human-run
+    path preserved). After the stamp, records are always O-L3 + all-machine →
+    the gate passes deterministically. Mutation-killed (f): disabling the
+    stamp lets an O-L0 input survive to disk → the stamp test goes red (see
+    test/MUTATIONS.md).
+
 ## Delegation confinement limit (0.1.4, honest limit — not fixable here)
 
 Role children CAN delegate. The executor's `toolFilter` confinement is

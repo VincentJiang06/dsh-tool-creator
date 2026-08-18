@@ -76,6 +76,23 @@ live) is the calling session's cwd. The executor's write surface is exactly:
 the stage artifact, `artifacts/battery-lens-<lens>.json` for fanout lenses,
 `gate-logs/<stage>.attempt<n>.log`, and the ledger — enumerated and tested.
 
+**Capability-level mechanical stamp (0.1.6):** the manifest may declare an
+OPTIONAL root field `capabilityLevel` (an O-series level `O-L0`..`O-L4`;
+fail-closed `MANIFEST_INVALID` on any other value). When it is set AND a
+stage's `artifact` basename is `decision-record.json`, the executor stamps the
+child's structured return BEFORE writing it: it overwrites the scalar
+`capability_level` to the manifest constant and sets `adjudicator: "machine"`
+on every existing gate object. This records a STRUCTURAL CONSTANT (the way the
+ledger records sha256), not a model judgment — the pipeline's capability level
+is fixed (a machine factory: every gate machine-adjudicated, the human veto
+reserved-not-exercised), but battery synthesis authored it non-deterministically
+(one run `O-L0` → validator-rejected → `stopped_unmet`, another `O-L3` → passed,
+same doctrine). It never fabricates gates; a manifest without `capabilityLevel`
+gets no stamping at all (full back-compat). The companion validator
+`validate_decision.py` enforces the machine-factory invariant: a machine-
+adjudicated gate requires `capability_level` O-L3+ (human-adjudicated records
+stay valid at every level).
+
 ## Error codes (every one carries a remedy line)
 
 `MANIFEST_INVALID` · `STAGE_UNKNOWN` · `ATTEMPT_EXCEEDED` ·

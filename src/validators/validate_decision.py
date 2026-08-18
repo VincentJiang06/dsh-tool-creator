@@ -185,9 +185,17 @@ def _traps() -> list:
     d["gates"][0]["options_rejected"] = []
     traps.append(("gate verdict==pass with empty options_rejected", d))
 
+    # Machine-factory invariant: a machine adjudicator under O-L0 (the R2
+    # deadlock class) must be caught.
     d = _green_fixture()
     d["gates"][0]["adjudicator"] = "machine"
-    traps.append(("O-L0 capability_level with non-human adjudicator", d))
+    traps.append(("machine adjudicator under a human-judged level O-L0 (R2 deadlock class)", d))
+
+    # ...and under O-L2 (still a human-judged level): machine is illegal there too.
+    d = _green_fixture()
+    d["capability_level"] = "O-L2"
+    d["gates"][0]["adjudicator"] = "machine"
+    traps.append(("machine adjudicator under a human-judged level O-L2", d))
 
     d = _green_fixture()
     d["acceptance"]["battery_verdict"] = "breaches_found"
@@ -249,6 +257,31 @@ def run_selftest() -> int:
         print(f"SELFTEST FAIL: 'none' tier with battery not_run expected to PASS but got: {sane}")
     else:
         print("selftest: sanity-pass 'battery_independence_tier==none with not_run' ok")
+
+    # sanity-pass: the machine factory's OWN record — O-L3 + every gate
+    # machine-adjudicated — is exactly what the executor's 0.1.6 stamp writes,
+    # and it must validate green (this is the post-stamp deterministic path).
+    mf = _green_fixture()
+    mf["capability_level"] = "O-L3"
+    for g in mf["gates"]:
+        g["adjudicator"] = "machine"
+    mf_violations = validate(mf)
+    if mf_violations:
+        ok = False
+        print(f"SELFTEST FAIL: machine-factory record (O-L3 + machine gates) expected to PASS but got: {mf_violations}")
+    else:
+        print("selftest: sanity-pass 'machine factory O-L3 + machine adjudicators' ok")
+
+    # sanity-pass (heritage): a human-adjudicated record stays valid at O-L0 —
+    # the green fixture above already proves this; asserted explicitly so a
+    # future rule change that breaks the human-run path is caught here too.
+    heritage = _green_fixture()  # O-L0 + human adjudicator
+    heritage_violations = validate(heritage)
+    if heritage_violations:
+        ok = False
+        print(f"SELFTEST FAIL: heritage human-run record (O-L0 + human gates) expected to PASS but got: {heritage_violations}")
+    else:
+        print("selftest: sanity-pass 'heritage O-L0 + human adjudicators' ok")
 
     caught = 0
     traps = _traps()

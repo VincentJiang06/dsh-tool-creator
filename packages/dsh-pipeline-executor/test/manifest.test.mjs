@@ -30,6 +30,9 @@ test('the shipped pipeline.manifest.json passes validation verbatim', async () =
   const doc = JSON.parse(await readFile(REPO_MANIFEST_PATH, 'utf8'));
   assert.equal(validateManifest(doc), doc);
   assert.equal(doc.stages.length, 5);
+  // 0.1.6: the machine-factory capability level is a MANIFEST CONSTANT the
+  // executor stamps into the decision-record — pinned here so a drift is caught.
+  assert.equal(doc.capabilityLevel, 'O-L3');
   // 0.1.5: zipper is skill-only (plugin/preset artifacts are code+config —
   // no prose to compress); every other stage carries no targets filter.
   for (const stage of doc.stages) {
@@ -79,6 +82,9 @@ const REJECTIONS = [
   ['targets as a bare string', (m) => { m.stages[0].targets = 'skill'; }, /stages\[0\]\.targets/],
   ['empty targets array', (m) => { m.stages[0].targets = []; }, /stages\[0\]\.targets/],
   ['non-string targets entry', (m) => { m.stages[1].targets = ['skill', 3]; }, /targets\[1\]/],
+  ['capabilityLevel not an O-series level', (m) => { m.capabilityLevel = 'L3'; }, /capabilityLevel/],
+  ['capabilityLevel out of the O-L0..O-L4 range', (m) => { m.capabilityLevel = 'O-L9'; }, /capabilityLevel/],
+  ['capabilityLevel wrong type', (m) => { m.capabilityLevel = 3; }, /capabilityLevel/],
 ];
 
 test('validateManifest rejects fail-closed, naming the field', async (t) => {
@@ -107,6 +113,16 @@ test('validateManifest accepts an optional per-stage targets filter on role AND 
   doc.stages[0].targets = ['skill'];
   doc.stages[1].targets = ['plugin', 'preset'];
   assert.equal(validateManifest(doc), doc);
+});
+
+test('validateManifest accepts an optional root capabilityLevel and tolerates its absence (0.1.6)', () => {
+  const absent = fixtureManifest(); // no capabilityLevel — the pre-0.1.6 shape
+  assert.equal(validateManifest(absent), absent);
+  for (const level of ['O-L0', 'O-L1', 'O-L2', 'O-L3', 'O-L4']) {
+    const doc = fixtureManifest();
+    doc.capabilityLevel = level;
+    assert.equal(validateManifest(doc), doc, level);
+  }
 });
 
 // ---------------------------------------------------------------------------

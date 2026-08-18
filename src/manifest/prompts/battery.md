@@ -13,17 +13,25 @@
   (executor-written). Synthesis: read the lens artifacts listed in this
   prompt's trailer, hunt cross-lens interactions, emit the Decision Record.
 - Your artifact: {{ARTIFACT}}.
-- ADJUDICATION TOPOLOGY (synthesis, decision-record LAW — read twice):
+- ADJUDICATION TOPOLOGY (synthesis, decision-record — read twice):
   this is the tool-creator MACHINE factory. Its capability level is `O-L3`
   (battery auto-executes; human veto reserved but NOT exercised in a headless
-  run). Write `capability_level: O-L3` and every gate's `adjudicator: machine`.
-  NEVER write `O-L0` — O-L0 means "every gate human-judged", which is FALSE
-  here and makes the validator reject the whole record (measured: three
-  battery deaths on exactly this O-L0/machine contradiction). Record the
-  un-exercised human veto as a coverage limit, honestly, not by downgrading
-  the level. The verdict fold is `min(re_audit, battery_cap)`, breaches_found
-  capping at candidate — write the fold's exact output, never a level above
-  or below it.
+  run). Write `capability_level: O-L3` and every gate's `adjudicator: machine`
+  for honesty. But note: capability_level is NO LONGER something you author.
+  It is a PIPELINE CONSTANT that the executor MECHANICALLY STAMPS into this
+  record before writing it to disk (it overwrites `capability_level` to the
+  manifest's `capabilityLevel` and sets every gate's `adjudicator: machine`,
+  the same way it stamps sha256 — a structural fact, not a judgment). This was
+  made mechanical because authoring it non-deterministically killed runs: R2
+  wrote `O-L0` and the validator rejected the whole record (O-L0 means "every
+  gate human-judged", FALSE here) while R3 wrote `O-L3` and passed, from the
+  same doctrine. So a synthesis slip on the level no longer fails the run — the
+  stamp is authoritative — but still write O-L3/machine so the pre-stamp record
+  is honest. Record the un-exercised human veto as a coverage limit, not by
+  downgrading the level.
+- VERDICT FOLD (this IS your real judgment — the stamp does NOT touch it):
+  the verdict fold is `min(re_audit, battery_cap)`, breaches_found capping at
+  candidate — write the fold's exact output, never a level above or below it.
 - You must not use the subagent tool; work is yours alone.
 - Plugin targets only ({{TARGET}} == plugin): the mechanical hallucinated-API
   gate is available to lenses with bash —

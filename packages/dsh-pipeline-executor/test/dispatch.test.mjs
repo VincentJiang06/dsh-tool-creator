@@ -10,6 +10,7 @@ import {
   renderGateArgv,
   resolveSeams,
   runStage,
+  stampCapabilityLevel,
   statusReport,
   tailLines,
   verdictSuffixFromRecord,
@@ -609,6 +610,123 @@ test('target filter absent: the stage runs for ANY target value — unknown valu
   assert.match(out.summary, /^stage=alpha attempt=1 gateExit=0 /);
   assert.equal(out.gateExit, 0);
   assert.equal(subagents.calls.length, 1, 'dispatched normally');
+});
+
+// ---------------------------------------------------------------------------
+// 3d. Capability-level mechanical stamp (0.1.6): when the manifest declares
+//     capabilityLevel AND the artifact basename is decision-record.json, the
+//     executor OVERWRITES capability_level to the constant and sets every
+//     gate's adjudicator to "machine" BEFORE writing to disk. Structural
+//     stamp (like sha256), never content invention; never fabricates gates;
+//     absent manifest field = no stamping (back-compat).
+// ---------------------------------------------------------------------------
+
+/** A decision-record-shaped structured return authored with the WRONG level. */
+const OL0_RECORD = () => ({
+  capability_level: 'O-L0', // the R2 non-determinism defect the stamp overrides
+  gates: [
+    { stage: 'battery', adjudicator: 'human', verdict: 'pass' },
+    { stage: 'engineer', adjudicator: 'machine', verdict: 'pass' },
+  ],
+  acceptance: { battery_verdict: 'clean', re_audit_verdict: 'industrial' },
+  final_verdict: 'done',
+});
+
+test('stamp: manifest capabilityLevel + decision-record artifact → on-disk capability_level==O-L3 and every adjudicator==machine', async (t) => {
+  const fx = await makeFixture(t, {
+    mutate: (m) => { m.capabilityLevel = 'O-L3'; m.stages[0].artifact = 'artifacts/decision-record.json'; },
+  });
+  const out = await runStage({ stage: 'alpha' }, makeDeps(fx, {
+    subagents: makeFakeSubagents({ behavior: { structured: OL0_RECORD() } }),
+  }));
+  assert.equal(out.gateExit, 0);
+
+  // The DISK bytes carry the stamped constant — this is the assertion set the
+  // mutation probe (f) kills: with the stamp disabled the O-L0 input survives.
+  const record = JSON.parse(await readFile(join(fx.ws, 'artifacts', 'decision-record.json'), 'utf8'));
+  assert.equal(record.capability_level, 'O-L3', 'capability_level overwritten to the manifest constant');
+  assert.deepEqual(record.gates.map((g) => g.adjudicator), ['machine', 'machine'],
+    'every existing gate adjudicator stamped machine (the human one overwritten too)');
+  // The stamp is surgical: it never touches the verdict fold (synthesis's job).
+  assert.equal(record.acceptance.battery_verdict, 'clean');
+  assert.equal(record.acceptance.re_audit_verdict, 'industrial');
+  assert.equal(record.final_verdict, 'done');
+});
+
+test('stamp via the REAL battery fanout path: the synthesis record is stamped on disk before the gate', async (t) => {
+  const fx = await makeFixture(t, {
+    mutate: (m) => { m.capabilityLevel = 'O-L3'; m.stages[1].artifact = 'artifacts/decision-record.json'; },
+  });
+  const subagents = makeFakeSubagents({
+    behavior: (request) => (request.label.includes('synthesis')
+      ? { structured: OL0_RECORD() }
+      : { structured: { lens: 'x', findings: [] } }),
+  });
+  await runStage({ stage: 'battery' }, makeDeps(fx, { subagents }));
+  const record = JSON.parse(await readFile(join(fx.ws, 'artifacts', 'decision-record.json'), 'utf8'));
+  assert.equal(record.capability_level, 'O-L3');
+  assert.deepEqual(record.gates.map((g) => g.adjudicator), ['machine', 'machine']);
+});
+
+test('stamp back-compat: a manifest with NO capabilityLevel does NOT stamp — the O-L0 input survives to disk verbatim', async (t) => {
+  const fx = await makeFixture(t, {
+    mutate: (m) => { m.stages[0].artifact = 'artifacts/decision-record.json'; }, // no capabilityLevel
+  });
+  await runStage({ stage: 'alpha' }, makeDeps(fx, {
+    subagents: makeFakeSubagents({ behavior: { structured: OL0_RECORD() } }),
+  }));
+  const record = JSON.parse(await readFile(join(fx.ws, 'artifacts', 'decision-record.json'), 'utf8'));
+  assert.equal(record.capability_level, 'O-L0', 'no stamping without the manifest field');
+  assert.deepEqual(record.gates.map((g) => g.adjudicator), ['human', 'machine'], 'adjudicators untouched');
+});
+
+test('stamp trigger is the decision-record FILENAME: capabilityLevel set but a non-decision-record artifact is NOT stamped', async (t) => {
+  const fx = await makeFixture(t, { mutate: (m) => { m.capabilityLevel = 'O-L3'; } }); // artifact stays artifacts/alpha.json
+  await runStage({ stage: 'alpha' }, makeDeps(fx, {
+    subagents: makeFakeSubagents({ behavior: { structured: OL0_RECORD() } }),
+  }));
+  const record = JSON.parse(await readFile(join(fx.ws, 'artifacts', 'alpha.json'), 'utf8'));
+  assert.equal(record.capability_level, 'O-L0', 'a non-decision-record artifact is never stamped');
+});
+
+test('stamp is conservative: a decision-record with NO gates array gets only the scalar stamped — never a fabricated gates array', async (t) => {
+  const fx = await makeFixture(t, {
+    mutate: (m) => { m.capabilityLevel = 'O-L3'; m.stages[0].artifact = 'artifacts/decision-record.json'; },
+  });
+  await runStage({ stage: 'alpha' }, makeDeps(fx, {
+    subagents: makeFakeSubagents({ behavior: { structured: { capability_level: 'O-L0' } } }),
+  }));
+  const record = JSON.parse(await readFile(join(fx.ws, 'artifacts', 'decision-record.json'), 'utf8'));
+  assert.equal(record.capability_level, 'O-L3');
+  assert.ok(!('gates' in record), 'no gates array fabricated when the record has none');
+});
+
+test('stampCapabilityLevel unit: overwrite, gate walk, conservative shapes, non-objects, falsy level', () => {
+  // Overwrite + every existing gate → machine.
+  const rec = { capability_level: 'O-L0', gates: [{ adjudicator: 'human' }, { adjudicator: 'machine' }] };
+  assert.equal(stampCapabilityLevel(rec, 'O-L3'), rec, 'returns the same object (in place)');
+  assert.equal(rec.capability_level, 'O-L3');
+  assert.deepEqual(rec.gates.map((g) => g.adjudicator), ['machine', 'machine']);
+
+  // No gates array → only the scalar; no gates fabricated.
+  const noGates = stampCapabilityLevel({ capability_level: 'O-L0' }, 'O-L3');
+  assert.deepEqual(noGates, { capability_level: 'O-L3' });
+
+  // Non-object gate entries are skipped, never crash.
+  const mixed = stampCapabilityLevel({ gates: [null, 'x', 3, { adjudicator: 'human' }] }, 'O-L3');
+  assert.deepEqual(mixed.gates, [null, 'x', 3, { adjudicator: 'machine' }]);
+  assert.equal(mixed.capability_level, 'O-L3');
+
+  // Falsy level → unchanged (no accidental blanking).
+  const untouched = { capability_level: 'O-L0', gates: [{ adjudicator: 'human' }] };
+  assert.equal(stampCapabilityLevel(untouched, ''), untouched);
+  assert.equal(untouched.capability_level, 'O-L0');
+  assert.equal(untouched.gates[0].adjudicator, 'human');
+
+  // Non-objects returned verbatim.
+  assert.equal(stampCapabilityLevel(null, 'O-L3'), null);
+  assert.equal(stampCapabilityLevel('nope', 'O-L3'), 'nope');
+  assert.deepEqual(stampCapabilityLevel(['a'], 'O-L3'), ['a']);
 });
 
 // ---------------------------------------------------------------------------

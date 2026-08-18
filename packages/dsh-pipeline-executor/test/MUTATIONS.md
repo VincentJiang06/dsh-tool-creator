@@ -144,3 +144,44 @@ cannot fake a skip.
 
 Pristine `lib/` restored byte-identical (diff-verified against the backup);
 final `npm test`: 101/101 green.
+
+# 0.1.6 mutation kill — capability-level mechanical stamp (2026-08-19)
+
+Same procedure: back up pristine `lib/` → single-point mutation → `npm test`
+(111 tests) → confirm RED, record failing names → restore (diff-verified
+byte-identical) → confirm green (111/111).
+
+## Mutation (f) — capability-level stamp disabled
+
+```diff
+@@ runStage, before the artifact write @@
+-    if (manifest.capabilityLevel && stage.artifact.split(/[\\/]/u).pop() === DECISION_RECORD_BASENAME) {
++    if (false && manifest.capabilityLevel && stage.artifact.split(/[\\/]/u).pop() === DECISION_RECORD_BASENAME) { // MUTATION (f): capability-level stamp disabled
+       stampCapabilityLevel(structured, manifest.capabilityLevel);
+     }
+```
+
+Result: **KILLED — 3 failed / 108 passed.** Failing tests:
+
+1. stamp: manifest capabilityLevel + decision-record artifact → on-disk
+   capability_level==O-L3 and every adjudicator==machine
+   (the O-L0 input written by synthesis survived to disk unstamped — the disk
+   record read `capability_level: "O-L0"` and adjudicators `["human","machine"]`)
+2. stamp via the REAL battery fanout path: the synthesis record is stamped on
+   disk before the gate
+   (same failure through the fanout synthesis path)
+3. stamp is conservative: a decision-record with NO gates array gets only the
+   scalar stamped — never a fabricated gates array
+   (`capability_level` stayed O-L0 on disk)
+
+Why it dies: every stamp assertion reads the decision-record JSON from **disk**
+(the bytes the executor wrote), never the return value or the in-memory
+structured object — an executor that stops stamping cannot fake the constant.
+The back-compat test (no `capabilityLevel` → O-L0 survives) and the
+non-decision-record trigger test stay green under the mutation by design: they
+assert the *absence* of stamping, which is exactly what a disabled stamp does.
+
+## Post-campaign state (0.1.6)
+
+Pristine `lib/` restored byte-identical (diff-verified against the backup);
+final `npm test`: 111/111 green.
