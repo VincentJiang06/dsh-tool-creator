@@ -533,6 +533,85 @@ test('verdictSuffixFromRecord: the fail-soft matrix, unit-level', () => {
 });
 
 // ---------------------------------------------------------------------------
+// 3c. Per-stage target filter (0.1.5): a stage row carrying `targets` is
+//     SKIPPED (no dispatch, no gate; ledgered, gateExit=0) when the call's
+//     target value is not in the list. Absent field = always runs.
+// ---------------------------------------------------------------------------
+
+test('target filter: a stage whose targets list excludes the call target is SKIPPED — no dispatch, no gate, skip ledgered', async (t) => {
+  const fx = await makeFixture(t, { mutate: (m) => { m.stages[0].targets = ['skill']; } });
+  const subagents = makeFakeSubagents();
+  const execFileImpl = makeFakeExecFile();
+  const deps = makeDeps(fx, { subagents, execFileImpl });
+  const out = await runStage({ stage: 'alpha', target: 'plugin' }, deps);
+
+  // Summary discloses the skip in the SPEC-pinned form (gateExit=0 so the
+  // conductor's branch table proceeds — the skip is never silent).
+  assert.equal(out.summary, 'stage=alpha SKIPPED (target filter) gateExit=0 ledger=1');
+  assert.equal(out.gateExit, 0);
+  assert.deepEqual(out.childSessionIds, []);
+
+  // These two assertions kill mutation (e): with the filter check removed the
+  // stage would dispatch a child and spawn the gate.
+  assert.equal(subagents.calls.length, 0, 'no child dispatched');
+  assert.equal(execFileImpl.calls.length, 0, 'no gate spawned');
+
+  // The skip IS evidence: one ledger line, read from DISK, full shape.
+  const entries = await readLedger(join(fx.ws, LEDGER));
+  assert.equal(entries.length, 1);
+  const e = entries[0];
+  assert.match(e.ts, /^\d{4}-\d{2}-\d{2}T/);
+  assert.equal(e.pipeline, 'fixture');
+  assert.equal(e.stage, 'alpha');
+  assert.equal(e.attempt, 1);
+  assert.equal(e.skipped, true);
+  assert.equal(e.reason, 'target filter: plugin not in ["skill"]');
+  assert.deepEqual(e.childSessionIds, []);
+  assert.equal(e.artifactPath, null, 'no artifact was written');
+  assert.equal(e.artifactSha256, null);
+  assert.equal(e.gateExit, 0);
+  assert.equal(e.gateLogPath, null, 'no gate ran');
+  assert.equal(e.tokens, null);
+  assert.equal(e.error, null);
+  assert.equal(typeof e.durationMs, 'number');
+
+  // Write surface of a skip: the ledger line, NOTHING else.
+  assert.deepEqual(await listFiles(fx.ws), ['evidence-ledger.jsonl']);
+  assert.deepEqual(deps.sessionState.stages.alpha, { attempt: 1, gateExit: 0, ledgerLine: 1 });
+});
+
+test('target filter: an absent target param filters as "unspecified" — honest reason, never guessed', async (t) => {
+  const fx = await makeFixture(t, { mutate: (m) => { m.stages[0].targets = ['skill']; } });
+  const subagents = makeFakeSubagents();
+  const out = await runStage({ stage: 'alpha' }, makeDeps(fx, { subagents }));
+  assert.equal(out.summary, 'stage=alpha SKIPPED (target filter) gateExit=0 ledger=1');
+  assert.equal(subagents.calls.length, 0);
+  const entries = await readLedger(join(fx.ws, LEDGER));
+  assert.equal(entries[0].reason, 'target filter: unspecified not in ["skill"]');
+});
+
+test('target filter: a matching target runs the stage normally; a run line never carries the skip marker', async (t) => {
+  const fx = await makeFixture(t, { mutate: (m) => { m.stages[0].targets = ['skill', 'plugin']; } });
+  const subagents = makeFakeSubagents();
+  const out = await runStage({ stage: 'alpha', target: 'plugin' }, makeDeps(fx, { subagents }));
+  assert.match(out.summary, /^stage=alpha attempt=1 gateExit=0 artifact=\S+ childSessions=child-1 ledger=1$/);
+  assert.equal(subagents.calls.length, 1);
+  assert.match(subagents.calls[0].request.persona, /Build target kind: plugin/, '{{TARGET}} still renders on a filtered-in run');
+  const entries = await readLedger(join(fx.ws, LEDGER));
+  assert.ok(!('skipped' in entries[0]), 'run lines keep the pre-0.1.5 shape — no skipped key');
+  assert.ok(!('reason' in entries[0]), 'no reason key either');
+});
+
+test('target filter absent: the stage runs for ANY target value — unknown values are not an error (regression)', async (t) => {
+  const fx = await makeFixture(t); // fixture stages carry no targets field
+  const subagents = makeFakeSubagents();
+  const out = await runStage({ stage: 'alpha', target: 'never-heard-of-this-kind' }, makeDeps(fx, { subagents }));
+  assert.match(out.summary, /^stage=alpha attempt=1 gateExit=0 /);
+  assert.equal(out.gateExit, 0);
+  assert.equal(subagents.calls.length, 1, 'dispatched normally');
+});
+
+// ---------------------------------------------------------------------------
 // 4. Retry semantics
 // ---------------------------------------------------------------------------
 

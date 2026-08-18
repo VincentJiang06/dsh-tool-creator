@@ -228,6 +228,27 @@ builder must reconcile this spec against it and record deviations in
     defense-in-depth for schemas authored elsewhere. Test-pinned at both
     levels: the loader unit test and a dispatched-request assertion.
 
+## 0.1.5 per-stage target filter deviation (2026-08-18)
+
+17. **Stage `targets` filter (additive manifest field).** A stage row may
+    carry `targets: [<kind>, …]` — validated fail-closed when present
+    (non-empty array of non-empty strings; `MANIFEST_INVALID` naming the
+    field). When `pipeline_stage`'s `target` value (absent → `unspecified`,
+    per deviation 3) is NOT in the list, the executor SKIPS the stage: no
+    dispatch, no gate, no artifact, no mkdir — but the skip IS evidence, so
+    ONE ledger line is written carrying `skipped: true` and
+    `reason: "target filter: <target> not in [...]"` alongside the standard
+    fields (`gateExit: 0`, `childSessionIds: []`, `tokens: null`,
+    artifact/gate-log fields null), and the summary discloses
+    `stage=<id> SKIPPED (target filter) gateExit=0 ledger=<n>` — gateExit 0
+    so the conductor's branch table proceeds past the stage. Filter
+    semantics, fail-open by absence of the FIELD: an unknown `target` value
+    is never an error, and a stage without `targets` always runs (all
+    pre-0.1.5 behavior unchanged; run-line ledger shape untouched — only
+    skip lines carry the two extra keys). First user: the shipped zipper
+    stage is `targets: ["skill"]` (plugin/preset artifacts are code+config —
+    no prose to compress; wall-clock directive 2026-08-18).
+
 ## Delegation confinement limit (0.1.4, honest limit — not fixable here)
 
 Role children CAN delegate. The executor's `toolFilter` confinement is

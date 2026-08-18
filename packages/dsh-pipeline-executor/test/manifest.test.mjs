@@ -30,6 +30,11 @@ test('the shipped pipeline.manifest.json passes validation verbatim', async () =
   const doc = JSON.parse(await readFile(REPO_MANIFEST_PATH, 'utf8'));
   assert.equal(validateManifest(doc), doc);
   assert.equal(doc.stages.length, 5);
+  // 0.1.5: zipper is skill-only (plugin/preset artifacts are code+config —
+  // no prose to compress); every other stage carries no targets filter.
+  for (const stage of doc.stages) {
+    assert.deepEqual(stage.targets, stage.id === 'zipper' ? ['skill'] : undefined, stage.id);
+  }
 });
 
 test('every shipped output schema passes the outputSchema loader', async () => {
@@ -71,6 +76,9 @@ const REJECTIONS = [
   ['non-integer maxTokens', (m) => { m.stages[0].role.maxTokens = 'lots'; }, /maxTokens/],
   ['missing dispatch.promptTemplate', (m) => { delete m.stages[0].dispatch.promptTemplate; }, /promptTemplate/],
   ['missing dispatch.outputSchema', (m) => { delete m.stages[0].dispatch.outputSchema; }, /outputSchema/],
+  ['targets as a bare string', (m) => { m.stages[0].targets = 'skill'; }, /stages\[0\]\.targets/],
+  ['empty targets array', (m) => { m.stages[0].targets = []; }, /stages\[0\]\.targets/],
+  ['non-string targets entry', (m) => { m.stages[1].targets = ['skill', 3]; }, /targets\[1\]/],
 ];
 
 test('validateManifest rejects fail-closed, naming the field', async (t) => {
@@ -91,6 +99,13 @@ test('validateManifest tolerates additive unknown fields ($comment etc.)', () =>
   const doc = fixtureManifest();
   doc.$comment = 'additive';
   doc.stages[0].futureField = { anything: true };
+  assert.equal(validateManifest(doc), doc);
+});
+
+test('validateManifest accepts an optional per-stage targets filter on role AND fanout stages (0.1.5)', () => {
+  const doc = fixtureManifest();
+  doc.stages[0].targets = ['skill'];
+  doc.stages[1].targets = ['plugin', 'preset'];
   assert.equal(validateManifest(doc), doc);
 });
 

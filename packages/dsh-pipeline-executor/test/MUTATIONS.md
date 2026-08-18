@@ -111,3 +111,36 @@ cannot fake absolute gate paths.
 
 Pristine `lib/` restored byte-identical (diff-verified against the backup);
 final `npm test`: 92/92 green.
+
+# 0.1.5 mutation kill — per-stage target filter (2026-08-18)
+
+Same procedure: back up pristine `lib/` → single-point mutation → `npm test`
+(101 tests) → confirm RED, record failing names → restore (diff-verified
+byte-identical) → confirm green (101/101).
+
+## Mutation (e) — target filter check removed
+
+```diff
+@@ runStage target filter @@
+-  if (stage.targets !== undefined && !stage.targets.includes(target)) {
++  if (false && stage.targets !== undefined && !stage.targets.includes(target)) { // MUTATION (e): target filter check removed
+```
+
+Result: **KILLED — 2 failed / 99 passed.** Failing tests:
+
+1. target filter: a stage whose targets list excludes the call target is SKIPPED — no dispatch, no gate, skip ledgered
+   (`subagents.calls.length` 1 instead of 0, `execFileImpl.calls.length` 1 instead of 0, summary was the normal
+   fact line instead of `stage=alpha SKIPPED (target filter) gateExit=0 ledger=1`, disk ledger line lacked
+   `skipped`/`reason`, write surface grew artifact + gate log)
+2. target filter: an absent target param filters as "unspecified" — honest reason, never guessed
+   (stage dispatched instead of skipping; no skip line on disk)
+
+Why it dies: the skip tests assert on what the fakes actually RECEIVED (zero
+`subagents.start` calls, zero gate spawns), on the ledger JSONL read from
+DISK, and on the enumerated write surface — an executor that stops filtering
+cannot fake a skip.
+
+## Post-campaign state (0.1.5)
+
+Pristine `lib/` restored byte-identical (diff-verified against the backup);
+final `npm test`: 101/101 green.

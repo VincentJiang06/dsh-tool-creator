@@ -188,7 +188,7 @@ export function apply(ctx, config = {}) {
     parameters: {
       stage: { type: 'string', required: true, description: 'stage id from the manifest (pipeline_status lists them)' },
       attempt: { type: 'number', description: '1-based attempt number (default 1); attempt N>1 points the role at the attempt N-1 gate log' },
-      target: { type: 'string', description: 'build target kind rendered into the DISPATCH CONTEXT {{TARGET}} variable (e.g. "plugin", "skill")' },
+      target: { type: 'string', description: 'build target kind rendered into the DISPATCH CONTEXT {{TARGET}} variable (e.g. "plugin", "skill"); also the stage target-filter key — a stage whose manifest `targets` list excludes this value is SKIPPED (ledgered, gateExit=0, no dispatch, no gate)' },
     },
     output: textOutput,
     timeoutMs: 3_600_000,

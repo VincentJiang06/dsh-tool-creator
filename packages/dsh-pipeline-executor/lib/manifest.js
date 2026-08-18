@@ -280,6 +280,18 @@ export function validateManifest(doc) {
     checkArgv(gate.cmd, `${f}.gate.cmd`);
     if (gate.then !== undefined) checkArgv(gate.then, `${f}.gate.then`);
 
+    if (stage.targets !== undefined) {
+      // 0.1.5 target filter: OPTIONAL non-empty array of target-kind strings.
+      // Presence gates the stage on pipeline_stage's `target` value; absence
+      // means the stage always runs (fail-open by absence of the field).
+      if (!Array.isArray(stage.targets) || stage.targets.length === 0) {
+        throw invalid(`${f}.targets`, 'must be a non-empty array of target kind strings when present');
+      }
+      for (const [j, kind] of stage.targets.entries()) {
+        if (typeof kind !== 'string' || kind === '') throw invalid(`${f}.targets[${j}]`, 'must be a non-empty string');
+      }
+    }
+
     if (stage.retries !== undefined && (!Number.isInteger(stage.retries) || stage.retries < 0)) {
       throw invalid(`${f}.retries`, 'must be a non-negative integer');
     }

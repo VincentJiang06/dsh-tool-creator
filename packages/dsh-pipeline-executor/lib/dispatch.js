@@ -367,6 +367,46 @@ export async function runStage(args, deps) {
   const gateLogsDir = join(workspace, layout.gateLogs);
   const ledgerPath = join(workspace, layout.ledger);
   const gateLogPath = join(gateLogsDir, `${stageId}.attempt${attempt}.log`);
+
+  const provider = stage.provider ?? manifest.defaults.provider;
+  const model = stage.model ?? manifest.defaults.model;
+
+  // ---- per-stage target filter (0.1.5) ------------------------------------
+  // A stage row may carry `targets: [<kind>, …]`; when this call's target
+  // value (absent → "unspecified") is NOT in the list the stage is SKIPPED:
+  // no dispatch, no gate, no artifact — but the skip IS evidence, so ONE
+  // ledger line is written ({skipped: true, reason, gateExit: 0}) and the
+  // summary discloses it. gateExit 0 lets the conductor's branch table
+  // proceed. Filter semantics: an unknown target value is never an error;
+  // an absent `targets` field means the stage always runs.
+  if (stage.targets !== undefined && !stage.targets.includes(target)) {
+    const reason = `target filter: ${target} not in ${JSON.stringify(stage.targets)}`;
+    const ledgerLine = await appendLedger(ledgerPath, {
+      ts: new Date().toISOString(),
+      pipeline: manifest.pipeline,
+      manifestSha256: loaded.sha256,
+      stage: stageId,
+      attempt,
+      skipped: true,
+      reason,
+      childSessionIds: [],
+      artifactPath: null,
+      artifactSha256: null,
+      gateExit: 0,
+      gateLogPath: null,
+      gateLogSha256: null,
+      roleModel: model,
+      durationMs: Date.now() - t0,
+      tokens: null,
+      error: null,
+    });
+    if (deps.sessionState) {
+      deps.sessionState.stages[stageId] = { attempt, gateExit: 0, ledgerLine };
+    }
+    const summary = `stage=${stageId} SKIPPED (target filter) gateExit=0 ledger=${ledgerLine}`;
+    return { summary: clampBytes(summary, 4000), gateExit: 0, ledgerLine, childSessionIds: [] };
+  }
+
   await mkdir(artifactsDir, { recursive: true });
   await mkdir(gateLogsDir, { recursive: true });
 
@@ -400,8 +440,6 @@ export async function runStage(args, deps) {
     ? renderGateArgv(stage.gate.then, vars, `gate.then for stage ${stageId}`)
     : undefined;
 
-  const provider = stage.provider ?? manifest.defaults.provider;
-  const model = stage.model ?? manifest.defaults.model;
   if (!deps.parent) {
     throw new PipelineError(CODES.DISPATCH_FAILED, 'pipeline_stage requires a calling agent (exec.agent was undefined)');
   }

@@ -98,6 +98,9 @@
     },
     {
       "id": "zipper",
+      "targets": [
+        "skill"
+      ],
       "role": {
         "persona": "roles/zipper.md",
         "tools": [
@@ -121,7 +124,7 @@
           "{{WORKSPACE}}/artifacts/compression-report.json"
         ]
       },
-      "$comment": "zipper runs on v4-flash (wall-clock directive 2026-08-18): mechanical compression at 1/3 price and higher speed; the compression gate catches quality failures, and a flash-red retries per the charter table. First live measurement = E5."
+      "$comment": "zipper runs on v4-flash (wall-clock directive 2026-08-18): mechanical compression at 1/3 price and higher speed; the compression gate catches quality failures, and a flash-red retries per the charter table. First live measurement = E5. targets [skill] (0.1.5, wall-clock directive 2026-08-18): zipper runs only for skill builds — plugin/preset artifacts are code+config with no prose to compress; any other target value skips the stage (ledgered, gateExit=0, conductor proceeds)."
     },
     {
       "id": "battery",
