@@ -306,3 +306,18 @@ Remaining: a live battery-green pass (cosmetic — the evidence is proven) +
 R2 plugin manifest. Wall-clock (R3 upstream, from ledger): composer→zipper
 all a1, engineer heaviest; full <1h timing measurable once a clean single-run
 lands.
+
+## R3 LIVE-GREEN + R2 non-determinism root cause (2026-08-19)
+R3 battery went LIVE-GREEN on a2 (a1 red was pre-install timing) → preset
+acceptance-manifest born live (kind=preset, O-L3). So skill(R1-c) + preset(R3)
+both have live-green manifests. R2 (plugin) resumed but battery a1/a3 red,
+a2 ROLE_NO_OUTPUT: synthesis wrote capability_level O-L0 (adjudicators all
+machine) → validate_decision's O-L0-requires-human rule rejects. ROOT CAUSE:
+capability_level is a PIPELINE CONSTANT (this is a machine factory = O-L3),
+not a per-run model judgment — but synthesis authors it and does so
+NON-DETERMINISTICALLY (R3 wrote O-L3, R2 wrote O-L0 despite identical
+installed doctrine, session fired AFTER install). Instruction-level doctrine
+is unreliable; the fix is MECHANICAL: executor stamps capabilityLevel from
+manifest config into the decision-record (like it stamps sha256 — recording a
+structural constant, not inventing a judgment); validator requires O-L3+machine;
+synthesis stops authoring it. This directly serves 一次通过. Delegated.
