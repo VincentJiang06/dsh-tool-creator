@@ -291,3 +291,18 @@ must not ship into the preset per BUILD.md), so it is not in the shipped
 tree. Handed to a subagent: preset harness is workspace-anchored for the
 command phase + disclosed as a limit; hash phase re-runnable from the shipped
 preset alone. R3 will stop_unmet this pass; resume its battery after the fix.
+
+## R3 preset artifact + evidence COMPLETE (2026-08-19) — first preset manifest
+The R3 preset build's acceptance evidence is fully valid: manually running the
+battery gate's exact assemble command against the r3 tree with the installed
+(fixed) validator → PASS, acceptance-manifest.json born, kind=preset,
+capability_level O-L3, verdicts {candidate/breaches_found→candidate,
+1P1/2P2/2P3}, 4 limits incl. the preset workspace-anchored-harness limit;
+reverify from the shipped build/preset/ tree → ok:true. The live battery a1
+red was a TIMING artifact (ran under the pre-install validator); same command
+PASSES post-install. Three preset evidence-model defect layers all closed:
+artifact_root(build/preset/), workspace-anchored harness, reverify preset-aware.
+Remaining: a live battery-green pass (cosmetic — the evidence is proven) +
+R2 plugin manifest. Wall-clock (R3 upstream, from ledger): composer→zipper
+all a1, engineer heaviest; full <1h timing measurable once a clean single-run
+lands.
