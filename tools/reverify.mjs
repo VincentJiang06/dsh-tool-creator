@@ -243,6 +243,12 @@ export function computeRootHash(fileHashes) {
 }
 
 // Recursive listing of relative posix paths; symlinks reported separately (illegal).
+// Runtime cache dirs and .DS_Store are excluded to stay byte-identical to assemble_manifest.walk_build
+// (which excludes the same set): a python-harness artifact regenerates scripts/__pycache__/*.pyc on
+// every run, and hashing it here would trip unlisted-files (initial walk) or tree-unchanged (after
+// commands) on a legitimate re-verification — the exact false-RED the P2-d honest-green promise must
+// not have. The manifest never lists these, so ignoring them keeps reverify's view == the manifest's.
+const REVERIFY_CACHE_DIRS = new Set(['__pycache__', '.git', 'node_modules']);
 function walkTree(root) {
   const files = [];
   const symlinks = [];
@@ -251,8 +257,8 @@ function walkTree(root) {
     for (const ent of readdirSync(abs, { withFileTypes: true })) {
       const childRel = rel ? `${rel}/${ent.name}` : ent.name;
       if (ent.isSymbolicLink()) symlinks.push(childRel);
-      else if (ent.isDirectory()) walk(childRel);
-      else if (ent.isFile()) files.push(childRel);
+      else if (ent.isDirectory()) { if (!REVERIFY_CACHE_DIRS.has(ent.name)) walk(childRel); }
+      else if (ent.isFile()) { if (ent.name !== '.DS_Store') files.push(childRel); }
       else symlinks.push(childRel); // sockets/fifos: equally illegal
     }
   })('');

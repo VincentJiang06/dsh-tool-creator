@@ -9,7 +9,7 @@
     "artifact_type": {"type": "string", "enum": ["decision_record"]},
     "target": {"type": "string"},
     "produced_by_role": {"type": "string", "enum": ["conductor"]},
-    "capability_level": {"type": "string", "enum": ["O-L0", "O-L1", "O-L2", "O-L3", "O-L4"], "description": "O7: ships at O-L0 (every gate human-judged); upgrades pre-registered, a serious incident auto-demotes one level"},
+    "capability_level": {"type": "string", "enum": ["O-L0", "O-L1", "O-L2", "O-L3", "O-L4"], "description": "O7: a HUMAN-run factory ships at O-L0 (every gate human-judged) and earns upgrades (pre-registered; a serious incident auto-demotes one level). A HEADLESS all-machine pipeline like tool-creator cannot occupy O-L0/L1/L2 (no human to judge/sign-off) — validate_decision rejects them for an all-machine record — so it is BORN at O-L3, its structural FLOOR, stamped mechanically, not climbed to; the human veto is a disclosed limit, not an exercised control. See references/orchestration-anchors.md §4 'Earned climb vs. structural floor'."},
     "gates": {
       "type": "array",
       "description": "O2: one complete decision object per gate crossing. O4: each gate is high-leverage or routine.",

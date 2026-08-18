@@ -59,14 +59,22 @@
 | target | 运行 | manifest | 关键证据 |
 |---|---|---|---|
 | skill | R1-c | live 绿 | B15 不再输;fold 自证(synthesis 低报被门拒重试) |
-| preset | R3 | live 绿 | kind=preset,preset 证据模型三层缺陷全清,reverify ok |
-| plugin | R2d | live 绿 | kind=plugin,scan_symbols 干净,reverify ok |
+| preset | R3 | live 绿 | kind=preset,preset 证据模型三层缺陷全清,reverify hash 绿* |
+| plugin | R2d | live 绿 | kind=plugin,scan_symbols 干净,reverify hash 绿* |
 | (故障) | R4 | 无(应然) | zipper seeded-red → 诚实 stopped_unmet |
 
+> \* **reverify 口径(2026-08-19 诚实修订)。** 上表这三件是**旧代码**产出的历史制品,
+> **早于** P2-d 修复(reverify 对 requiresKit/requiresWorkspace 命令 skip-with-disclosure)。
+> 对它们跑**默认全模式** `node tools/reverify.mjs <dir>` 会 exit 1——validate-dossier/
+> validate-structure 命令找不到从不出厂的流水线 kit(即 reality-P2 报告的 false-RED),
+> 只有 `--skip-commands`(逐字节 HASH 复核)为绿。P2-d/P2-c 是**源码修复**,已在当前代码的
+> **全新 regen** 上验证(plugin/preset 全模式 reverify 绿、manifest 带 requiresKit/披露行);
+> 历史制品**不回填**(它们是过去跑的证据,不是发布交付物)。所以此三行改记 "reverify hash 绿",
+> 命令级全复核以新 regen 为准。
+>
 > 注:上表**不**把 "O-L3" 或 "O-L3 首过" 当作关键证据——O-L3 是执行器机械盖章的
 > **结构下限常量**(headless 全机器记录里 validate_decision 只接受 O-L3/O-L4,见
 > `orchestration-anchors.md` §4),没有"通过/首过"可言,列入会夸大该跑实际证明的东西。
-> 各行关键证据是可复核的机械事实(缺陷清零、reverify、门自证),而非能力等级标签。
 
 全程暴露并根治的确定性缺陷(每个都用机械保证而非指令修复):O-L0/O-L3 非确定性
 → 机械盖章;冻结工具结果崩溃 → clone-before-write;preset 子目录树 → artifact_root;

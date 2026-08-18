@@ -134,14 +134,19 @@ MACHINE_ADJUDICATION_LIMIT = (
 def battery_mode_limit(acceptance: dict) -> str:
     tier = acceptance.get("battery_independence_tier", "?")
     verdict = acceptance.get("battery_verdict", "?")
+    tier_note = ("no human adjudicated (independence is instance/model-tier)"
+                 if tier != "human" else "independence_tier claims 'human' — self-reported in the decision record, not mechanically attested")
     return (
         f"battery: verdict={verdict}, independence_tier={tier}. The SEED anti-false-negative gate (a lens "
         "that misses its planted seed is void) is persona-instruction to the attacker lenses, NOT "
-        "mechanically enforced by the executor — a 'clean' verdict rests on the lenses' diligence, "
-        "cross-checked mechanically only by the breach-grade floor (P1/P2 lens findings force "
-        "'breaches_found'; a clean/not_run verdict over counted P1/P2 findings is refused at assembly). "
-        "A same-model battery cannot see a blind-spot class shared by every instance of the attacker "
-        "model; independence is instance/model-tier, never human"
+        "mechanically enforced by the executor. The one mechanical floor is breach-grade: counted P1/P2 "
+        "lens findings force 'breaches_found', and a clean/not_run verdict over counted P1/P2 findings is "
+        "refused at assembly — this guards the SYNTHESIS's own verdict relabeling. It does NOT make the "
+        "lens artifacts tamper-proof: a role child can delegate an UNfiltered helper through the host-open "
+        "subagent door that could rewrite artifacts/battery-lens-*.json, and a dishonest lens can downgrade "
+        "a P1 to P3 or park it in flags[] to dodge the count. So a 'clean' verdict ultimately rests on lens "
+        f"diligence + honesty (SEED + coverage-honesty persona rules), not a mechanical proof; {tier_note} "
+        "(a same-model battery cannot see a blind-spot class shared by every instance of the attacker model)"
     )
 
 
