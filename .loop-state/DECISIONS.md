@@ -183,3 +183,14 @@ diagnosis; starving it would reproduce the guidance-class death), lens
 dispatch prompt now pins the attack surface to build/+spec with an explicit
 depth-over-breadth budget note. Install deferred until the in-flight run
 settles. Target: battery ≈ 150K.
+
+## R1-b final (2026-08-18): four stages green a1, battery dead at the WALL
+composer/guidance/engineer/zipper all green attempt 1 (F1-F3 fixes fully
+verified by outcome). battery ROLE_NO_OUTPUT x3, synthesis child
+stopReason=aborted each time — TIMEOUT wall, not token starvation: five
+full-scale lenses (~470K tokens/attempt) consumed the dispatch window before
+synthesis. Three attempts burned ~1.43M tokens; the user's scale-cut
+directive (3 lenses / 12288) independently lands the fix; belt-and-suspenders
+dispatchTimeoutMs 2.7M in the preset row. Queued to L7: on fanout retry,
+reuse green lens artifacts and re-dispatch only the failed member (would
+have saved ~1M tokens). B15 head-to-head now runnable from the r1b build.

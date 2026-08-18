@@ -87,6 +87,10 @@
   config:
     baseDir: !!js "process.getBuiltinModule('node:url').fileURLToPath(new URL('.', baseUrl))"
     manifestPath: manifest/pipeline.manifest.json
+    # 45-min per-dispatch wall: the battery synthesis died 3x at stopReason=
+    # aborted under the 30-min default when five full-scale lenses ate the
+    # window first (R1-b). The scale cut is the real fix; this is margin.
+    dispatchTimeoutMs: 2700000
 
 # ── preset-local skills: OMITTED (L2 decision, 2026-08-17) ─────────────────
 
