@@ -702,11 +702,20 @@ test('stamp is conservative: a decision-record with NO gates array gets only the
 });
 
 test('stampCapabilityLevel unit: overwrite, gate walk, conservative shapes, non-objects, falsy level', () => {
-  // Overwrite + every existing gate → machine.
+  // Overwrite + every existing gate → machine, via a COPY (input untouched).
   const rec = { capability_level: 'O-L0', gates: [{ adjudicator: 'human' }, { adjudicator: 'machine' }] };
-  assert.equal(stampCapabilityLevel(rec, 'O-L3'), rec, 'returns the same object (in place)');
-  assert.equal(rec.capability_level, 'O-L3');
-  assert.deepEqual(rec.gates.map((g) => g.adjudicator), ['machine', 'machine']);
+  const out = stampCapabilityLevel(rec, 'O-L3');
+  assert.notEqual(out, rec, 'returns a copy, never mutates the (possibly frozen) input');
+  assert.equal(rec.capability_level, 'O-L0', 'the input object is left untouched');
+  assert.equal(out.capability_level, 'O-L3');
+  assert.deepEqual(out.gates.map((g) => g.adjudicator), ['machine', 'machine']);
+
+  // FROZEN input (the real-host shape: dsh-mcp-manager deep-freezes every tool
+  // result) must not throw — the 0.1.6 field crash. Deep-freeze rec + gates.
+  const frozen = Object.freeze({ capability_level: 'O-L0', gates: [Object.freeze({ adjudicator: 'human' })] });
+  const fout = stampCapabilityLevel(frozen, 'O-L3');
+  assert.equal(fout.capability_level, 'O-L3');
+  assert.equal(fout.gates[0].adjudicator, 'machine');
 
   // No gates array → only the scalar; no gates fabricated.
   const noGates = stampCapabilityLevel({ capability_level: 'O-L0' }, 'O-L3');

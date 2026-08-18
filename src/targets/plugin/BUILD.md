@@ -185,6 +185,18 @@ stage run into a tool error. Mechanically: return EXACTLY the declared shape fro
 richer facts library-internal), and make your test fakes validate returns against the declared
 schema so the class dies offline.
 
+**Invariant 6 — every tool RESULT the host hands back is DEEP-FROZEN; never mutate it in place.**
+
+The host (dsh-mcp-manager) recursively `Object.freeze`s every tool result — including a subagent's
+`structured` output — to enforce lossless-JSON immutability. Any code that writes a property onto a
+received result (`result.foo = x`, pushing to a returned array, sorting it in place) throws
+`TypeError: Cannot assign to read only property` in strict mode, on the real host only. Test fakes
+hand back ordinary writable objects, so a full green unit suite sails past it and the crash lands on
+the first live call (field origin: dsh-pipeline-executor 0.1.6 stamped a capability level onto the
+frozen decision-record and crashed every battery). Mechanically: treat every received result as
+immutable — `structuredClone` it before writing, and use the copy — and make at least one test
+freeze its fake result (`Object.freeze`, deep) so the class dies offline.
+
 **Verify before you claim done.** You cannot run a real dsh boot from inside the sandbox, so there
 is no evidence available to you that these invariants hold. Therefore: (a) follow the rules above
 literally rather than reasoning about whether a given shape "should" work, and (b) record `E-L4`

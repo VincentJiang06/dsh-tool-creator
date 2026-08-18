@@ -271,15 +271,22 @@ export function stampCapabilityLevel(structured, capabilityLevel) {
   if (!capabilityLevel || structured === null || typeof structured !== 'object' || Array.isArray(structured)) {
     return structured;
   }
-  structured.capability_level = capabilityLevel;
-  if (Array.isArray(structured.gates)) {
-    for (const gate of structured.gates) {
+  // Copy before writing: the structured tool result arrives DEEP-FROZEN from
+  // the host (dsh-mcp-manager recursively Object.freeze's every tool result to
+  // enforce lossless-JSON immutability), so an in-place assignment throws
+  // TypeError in strict mode — a real-host crash the non-frozen test fakes
+  // never saw (0.1.6 field regression). structuredClone yields a writable
+  // deep copy; the caller must use the RETURN value.
+  const out = structuredClone(structured);
+  out.capability_level = capabilityLevel;
+  if (Array.isArray(out.gates)) {
+    for (const gate of out.gates) {
       if (gate !== null && typeof gate === 'object' && !Array.isArray(gate)) {
         gate.adjudicator = 'machine';
       }
     }
   }
-  return structured;
+  return out;
 }
 
 /**
@@ -621,7 +628,7 @@ export async function runStage(args, deps) {
     // trigger as the verdict passthrough — never stage id/position) AND on the
     // manifest declaring capabilityLevel (absent → no stamping, back-compat).
     if (manifest.capabilityLevel && stage.artifact.split(/[\\/]/u).pop() === DECISION_RECORD_BASENAME) {
-      stampCapabilityLevel(structured, manifest.capabilityLevel);
+      structured = stampCapabilityLevel(structured, manifest.capabilityLevel);
     }
 
     // ---- artifact: EXECUTOR-written from the structured return ------------
