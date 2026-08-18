@@ -30,3 +30,17 @@
 | 触发电池 | 无 | **30 案例(20正+10负)30/30** | **r1c** |
 
 08-14 的全败 → **2 胜 1 平 1 微负:"不再输"达成**。
+
+## 三 target live 闭环(2026-08-19,L5 关门)
+
+| target | 运行 | manifest | 关键证据 |
+|---|---|---|---|
+| skill | R1-c | live 绿 | B15 不再输;fold 自证(synthesis 低报被门拒重试) |
+| preset | R3 | live 绿 | kind=preset,O-L3,preset 证据模型三层缺陷全清,reverify ok |
+| plugin | R2d | live 绿 | kind=plugin,O-L3 首过,scan_symbols 干净,reverify ok |
+| (故障) | R4 | 无(应然) | zipper seeded-red → 诚实 stopped_unmet |
+
+全程暴露并根治的确定性缺陷(每个都用机械保证而非指令修复):O-L0/O-L3 非确定性
+→ 机械盖章;冻结工具结果崩溃 → clone-before-write;preset 子目录树 → artifact_root;
+过严准入门 → target-aware;跨会话台账污染 → per-line manifestSha 机械拒绝。这些
+是竞品的 "schema 校验 + smoke" 永远碰不到的层。

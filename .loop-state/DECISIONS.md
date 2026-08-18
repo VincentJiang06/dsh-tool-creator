@@ -332,3 +332,17 @@ composer/guidance → flash trial (composer 8.6→~3? guidance 9.5→~4?), batte
 lens cap trim. R2 provenance lesson LEDGERED: NEVER install mid-run — the
 per-line manifestSha256 fail-close (2 versions → refuse) is correct and caught
 my own violation; clean-workspace re-run is the remedy.
+
+## L5 CLOSED (2026-08-19): three targets banked live-green
+R2d (fresh workspace, executor 0.1.7): battery a1 GREEN first-pass, plugin
+acceptance-manifest born — kind=plugin, capability_level O-L3 all-machine
+(the 0.1.7 structuredClone stamp fix PROVEN: stamp worked without the frozen
+crash), verdicts candidate/breaches_found→candidate (1P1/4P2/4P3), reverify
+ok:true, scan_symbols clean, 63.5min (engineer needed a2 — placeholder-path
+model imprecision, gate-caught). Three targets now have live-green manifests:
+skill (R1-c, B15 不再输), preset (R3, O-L3), plugin (R2d, O-L3). R4 fault
+injection = clean stopped_unmet. Invariant 6 (never mutate frozen tool
+results) added to BUILD.md — 6th boot-only invariant, all field-earned.
+L5 close: all matrix runs done, differential battery banked, wall-clock
+~62-63min (over the <1h goal — engineer + battery are the poles; sub-60 is
+L7 with flash-tier trials). → L6 attack + release.
