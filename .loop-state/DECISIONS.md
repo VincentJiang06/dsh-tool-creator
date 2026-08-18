@@ -194,3 +194,20 @@ directive (3 lenses / 12288) independently lands the fix; belt-and-suspenders
 dispatchTimeoutMs 2.7M in the preset row. Queued to L7: on fanout retry,
 reuse green lens artifacts and re-dispatch only the failed member (would
 have saved ~1M tokens). B15 head-to-head now runnable from the r1b build.
+
+## R1-c (2026-08-18): FIRST ACCEPTANCE MANIFEST BORN — the loop closes
+Four stages a1 green; battery a1 gate-RED (validate_decision caught the
+synthesis under-reporting effective_verdict 'draft' vs fold's 'candidate' +
+two adjudicator field errors — the gate turned model imprecision into a
+retry), battery a2 GREEN → acceptance-manifest.json: 80 files hashed,
+verdicts {reAudit: candidate, battery: breaches_found (3P1/9P2/3P3),
+effective: candidate} — the min-fold honestly caps its own product.
+baselineDelta note: naive baseline 8/30 vs built skill 30/30 (+73pp).
+Battery scale cut VERIFIED: ~250K/attempt vs 464-495K (-47%), synthesis
+survived both attempts (wall no longer hit). T-D2 datum from R1-c era:
+prompt-level ban held 0/4 role children spawning helpers (vs 9 pre-ban) —
+instruction-level containment sufficed for v4-pro; door remains host-open.
+B15 head-to-head banked from r1b build: 2W/1T/1L vs the 08-14 total loss
+(win: corpus 26+27 classed vs 18+18, trigger battery 22+12 vs none; tie:
+truncation; loss: backslash escaping — WHICH THE REALITY LENS ITSELF CAUGHT,
+proving the battery detects the defect class the gate would then cap).
