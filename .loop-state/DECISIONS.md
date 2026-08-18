@@ -260,3 +260,18 @@ R2 ran mixed-config (mid-flight preset install during the two-phase-UX step
 discloses provenance mechanically). Plan: R3 first (timing measurement),
 then resume R2's battery on the same workspace (fresh session, ledger
 continues) to birth the plugin manifest for ~¥5.
+
+## R2/R3 findings fixed (2026-08-19): O-L3 machine factory + target-aware intake
+R2 anomaly (O-L0 human-adjudicator deadlock): the O-L0 "ships here" line was
+skill-creator-max's HUMAN-factory heritage; the tool-creator MACHINE factory's
+level is O-L3 (battery auto-executes, human veto reserved-not-exercised,
+disclosed as a limit). Fixed in anchors + battery dispatch prompt (write
+O-L3/adjudicator:machine, never O-L0 — three battery deaths traced here). The
+validator O-L0 rule is CORRECT and stays (claiming O-L0 does require human
+gates); the bug was synthesis claiming a level it can't honor.
+R3 finding (over-strict intake): component (c) was skill-shaped (trigger/IO
+example); preset has no trigger phrase. Made (c) target-aware: operating
+domain / enforced discipline satisfies it for preset/plugin. Both were
+GATE-DESIGN defects surfaced by faithful conductor behavior — the value of
+running real cases. R4=clean pass banked; wall-clock <1h still unmeasured
+(R3 stopped at intake); R2/R3 both re-fireable now.

@@ -68,10 +68,10 @@ tick-vs-fact drift. Anchors: [AMZ-ORR][AMZ-Stripe评审][SELF-battery渐近].
 ## 4. Capability ladder (O7, P9 / PLT-定理5)
 
 ```
-O-L0  every gate human-judged            (ships here — pipeline factory setting)
+O-L0  every gate human-judged            (the HUMAN-run factory's setting)
 O-L1  machine checklist runs, human signs off
 O-L2  routine gates auto, high-leverage gates human-judged
-O-L3  battery auto-executes, veto reserved to human
+O-L3  battery auto-executes, veto reserved to human   (the tool-creator MACHINE factory's setting — the pipeline auto-adjudicates; human veto is reserved but not exercised in a headless run, disclosed as a limit)
 O-L4  fully auto + periodic human spot-check
 ```
 

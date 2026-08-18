@@ -27,9 +27,18 @@ first minute. Check the request text mechanically:
 - **PASS immediately** if it contains the line `# TOOL-CREATOR SPEC v1` (the
   spec-grill skill's output — the preferred entry).
 - Otherwise **count these components**: (a) a NAME for the artifact, (b) a
-  concrete FUNCTION description, (c) a trigger phrase, usage scenario, or at
-  least one concrete input→output example. All three present → PASS (a terse
-  but complete request is a good request). Missing one or more → REFUSE.
+  concrete FUNCTION description, (c) HOW IT IS USED — and read (c)
+  target-aware, because a skill, a plugin, and a preset are invoked
+  differently:
+  - a **trigger phrase, usage scenario, or concrete input→output example**
+    (natural for a skill or a plugin tool), OR
+  - an **operating domain / the discipline it enforces / what running under
+    it does** (natural for a preset or profile — a preset has no trigger
+    phrase; it is invoked by running under it).
+  Any one form of (c) satisfies it. All three components present → PASS (a
+  terse but complete request is a good request; do not demand a skill-shaped
+  example from a preset request). Missing (a), (b), or every form of (c) →
+  REFUSE.
 - On REFUSE: make no stage calls. Emit exactly:
 
       NEEDS-SPEC: the request is missing <the missing components, named>.
