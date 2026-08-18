@@ -34,6 +34,14 @@
     "access": "public"
   },
   "license": "MIT",
+  "author": "Vincent Jiang",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VincentJiang06/dsh-tool-creator.git",
+    "directory": "packages/dsh-pipeline-executor"
+  },
+  "homepage": "https://github.com/VincentJiang06/dsh-tool-creator/tree/main/packages/dsh-pipeline-executor#readme",
+  "bugs": "https://github.com/VincentJiang06/dsh-tool-creator/issues",
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
