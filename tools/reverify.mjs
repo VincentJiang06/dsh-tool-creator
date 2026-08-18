@@ -101,7 +101,7 @@ export const ACCEPTANCE_SCHEMA = {
         effective: {
           type: 'string',
           enum: ['draft', 'candidate', 'industrial'],
-          description: 'min-fold (O5): rank draft<candidate<industrial; battery caps the rank at clean→industrial, not_run→candidate, breaches_found→draft; effective = min(reAudit, cap). The verifier recomputes this fold and fails a manifest whose written effective exceeds it — a verdict above the fold is fabricated, not optimistic.',
+          description: 'min-fold (O5, aligned with validate_decision.py + orchestration-anchors §2 — F7 fix 2026-08-18): rank draft<candidate<industrial; battery caps the rank at clean→industrial, not_run→candidate, breaches_found→candidate; effective = min(reAudit, cap). The verifier recomputes this fold and fails a manifest whose written effective exceeds it — a verdict above the fold is fabricated, not optimistic.',
         },
         batteryFindingsCounts: {
           type: 'object',
@@ -261,7 +261,7 @@ function walkTree(root) {
 // Checks
 // ---------------------------------------------------------------------------
 const RANK = { draft: 0, candidate: 1, industrial: 2 };
-const BATTERY_CAP = { clean: 2, not_run: 1, breaches_found: 0 };
+const BATTERY_CAP = { clean: 2, not_run: 1, breaches_found: 1 };
 
 function semanticErrors(manifest, root) {
   const errs = [];

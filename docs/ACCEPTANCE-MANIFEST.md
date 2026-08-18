@@ -19,7 +19,8 @@ creators that verify at all discard the evidence at packaging time.
   and the child session ids. The ledger is written mechanically by
   `dsh-pipeline-executor` from disk bytes — never model-transcribed.
 - `verdicts` — `reAudit`, `battery`, the min-folded `effective`
-  (battery caps: clean→industrial, not_run→candidate, breaches_found→draft),
+  (battery caps: clean→industrial, not_run→candidate, breaches_found→candidate —
+  aligned with the pipeline's validate_decision gate; F7 fix 2026-08-18),
   and P1/P2/P3 finding counts.
 - `reverify` — the re-runnable commands (argv arrays, expected exit codes), the
   harness path (the target's `evals/run_harness.sh` per `targets/*/BUILD.md`),
@@ -64,6 +65,14 @@ broke, per artifact, when an rc-train host drifts. Install-time, the same
 command turns "we copied the files" into "we re-proved the artifact still
 passes its own battery before enabling it". Hash-only mode gives integrity
 checking for free where executing anything is unacceptable.
+
+## Ledger-pin semantics
+
+`provenance.evidenceLedgerSha256` pins the ledger AS OF assembly time — the
+battery attempt that runs the assembly gate appends its own ledger line AFTER
+the manifest is written, so the pin covers every line except the assembling
+attempt's own. This is mechanically consistent (the assembler cannot hash a
+line that does not exist yet) and disclosed here rather than papered over.
 
 ## Honest limits
 

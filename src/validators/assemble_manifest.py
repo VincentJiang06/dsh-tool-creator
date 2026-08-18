@@ -117,19 +117,28 @@ def min_fold(re_audit: str, battery: str) -> str:
 def walk_build(build_dir: str, exclude_abs: str | None) -> tuple[dict, list]:
     """Walk the artifact tree → {posix-rel-path: sha256}. Symlinks/specials refuse.
 
-    Excludes acceptance-manifest.json at the tree root (the standard's rule) and
-    the --out file when it resolves inside the tree (never self-hash).
+    Excludes acceptance-manifest.json at the tree root (the standard's rule),
+    the --out file when it resolves inside the tree (never self-hash), and
+    runtime cache dirs (__pycache__, .DS_Store) — R1-c shipped .pyc files whose
+    bytes change on every harness re-run, which would trip reverify's
+    tree-unchanged check on the first legitimate re-verification.
     """
     files: dict = {}
     violations: list = []
+    CACHE_DIRS = {"__pycache__", ".git", "node_modules"}
     for root, dirs, names in os.walk(build_dir, followlinks=False):
         dirs.sort()
         for d in list(dirs):
+            if d in CACHE_DIRS:
+                dirs.remove(d)
+                continue
             if os.path.islink(os.path.join(root, d)):
                 rel = os.path.relpath(os.path.join(root, d), build_dir)
                 violations.append(f"artifact tree carries a symlink directory '{rel}' — symlinks are illegal in a manifested artifact")
                 dirs.remove(d)
         for name in sorted(names):
+            if name == ".DS_Store":
+                continue
             abs_path = os.path.join(root, name)
             rel = os.path.relpath(abs_path, build_dir).replace(os.sep, "/")
             if os.path.islink(abs_path):

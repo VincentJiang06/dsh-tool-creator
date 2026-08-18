@@ -62,7 +62,7 @@
         "effective": {
           "type": "string",
           "enum": ["draft", "candidate", "industrial"],
-          "description": "min-fold (O5): rank draft<candidate<industrial; battery caps the rank at clean→industrial, not_run→candidate, breaches_found→draft; effective = min(reAudit, cap). The verifier recomputes this fold and fails a manifest whose written effective exceeds it — a verdict above the fold is fabricated, not optimistic."
+          "description": "min-fold (O5, aligned with validate_decision.py + orchestration-anchors §2 — F7 fix 2026-08-18): rank draft<candidate<industrial; battery caps the rank at clean→industrial, not_run→candidate, breaches_found→candidate; effective = min(reAudit, cap). The verifier recomputes this fold and fails a manifest whose written effective exceeds it — a verdict above the fold is fabricated, not optimistic."
         },
         "batteryFindingsCounts": {
           "type": "object",

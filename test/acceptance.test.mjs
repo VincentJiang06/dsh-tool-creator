@@ -219,8 +219,9 @@ test('seeded bad (iii): missing required field -> schema-shape FAIL, nothing els
 test('fabricated verdict: effective above the battery min-fold -> verdict-fold FAIL', () => {
   const { dir, manifest } = buildGoodArtifact();
   try {
-    manifest.verdicts.battery = 'breaches_found'; // caps effective at draft
-    manifest.verdicts.effective = 'candidate';    // fabricated
+    manifest.verdicts.battery = 'breaches_found'; // caps effective at candidate (F7-aligned fold)
+    manifest.verdicts.reAudit = 'industrial';
+    manifest.verdicts.effective = 'industrial';   // fabricated: exceeds the breaches_found cap
     writeManifest(dir, manifest);
     const { status, json } = runReverify(dir);
     assert.equal(status, 1);

@@ -211,3 +211,14 @@ B15 head-to-head banked from r1b build: 2W/1T/1L vs the 08-14 total loss
 (win: corpus 26+27 classed vs 18+18, trigger battery 22+12 vs none; tie:
 truncation; loss: backslash escaping — WHICH THE REALITY LENS ITSELF CAUGHT,
 proving the battery detects the defect class the gate would then cap).
+
+## F7 + hygiene (2026-08-18): fold aligned, reverify passes the real artifact
+breaches_found→candidate everywhere (validate_decision/charter/anchors were
+authoritative; the L4 standalone had invented →draft in reverify/docs/schema
+description). Fabrication fixture updated (breaches_found+industrial). The
+REAL r1c manifest now reverifies ok:true (80 hashes, schema, semantics,
+fold) when checked from the artifact root — note for docs: the manifest
+lives in artifacts/ until PACKAGING copies it to the artifact root.
+Assembler now excludes __pycache__/.git/node_modules/.DS_Store from the walk
+(r1c shipped .pyc whose bytes churn on harness re-runs → would trip
+tree-unchanged). Ledger-pin 5-of-6 semantics documented.
