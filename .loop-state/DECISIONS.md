@@ -233,3 +233,18 @@ parallelized where evidence allows. Projected single-attempt full run
 in-flight run's engine). Deeper cuts if still needed (queued, need evidence):
 composer→flash trial, engineer corpus floor tuning — both quality-risky,
 gate-measurable, L7.
+
+## Two-phase UX (2026-08-18, user directive): grill → pipeline, 一次通过
+User clarified the product shape: users FIRST run a grill-me interrogation
+to forge an airtight spec (~20-30min interactive, normal session), THEN the
+pipeline works from it (~30-40min) — total ≈1h, hard budget 2h, first-pass
+success over raw speed. Shipped: skills/spec-grill (interrogation doctrine +
+the TOOL-CREATOR SPEC v1 output contract; installed by install.sh into
+~/.dsh/skills for NORMAL sessions), charter Step 0.5 intake gate (SPEC block
+→ pass; else name+function+trigger heuristic; refusal = stopped_needs_spec
+in minutes with the grill pointer — never an hour of misdirection), composer
+spec-block fast path (grilled spec is primary source, no re-litigation).
+Wall-clock levers stack: flash zipper + zipper skipped for plugin/preset
+(0.1.5 target filter, in flight) + 3-way lenses → pipeline phase projected
+30-40min; sub-30 candidates (flash composer/guidance trial, engineer batch
+writes) gated on R3 measurements.

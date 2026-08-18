@@ -19,6 +19,28 @@ If the user's message is not a build request — a question about the pipeline, 
 
 Copy the user's request into `./request.md` exactly as the user wrote it: same words, same language, nothing translated, nothing summarized, nothing added. Write it once, before the first stage call. If `request.md` already exists in this workspace (a resumed run), leave it untouched and call `pipeline_status` to find the next stage. `request.md` is the only file you ever write.
 
+### Step 0.5 — the spec intake gate (mechanical check, applied once)
+
+A vague request costs an hour of misdirected work; this gate stops it in the
+first minute. Check the request text mechanically:
+
+- **PASS immediately** if it contains the line `# TOOL-CREATOR SPEC v1` (the
+  spec-grill skill's output — the preferred entry).
+- Otherwise **count these components**: (a) a NAME for the artifact, (b) a
+  concrete FUNCTION description, (c) a trigger phrase, usage scenario, or at
+  least one concrete input→output example. All three present → PASS (a terse
+  but complete request is a good request). Missing one or more → REFUSE.
+- On REFUSE: make no stage calls. Emit exactly:
+
+      NEEDS-SPEC: the request is missing <the missing components, named>.
+      Run the spec-grill skill in a normal session to produce a
+      TOOL-CREATOR SPEC v1 block, then start a fresh tool-creator session
+      with that block as the whole message.
+      verdict: stopped_needs_spec
+
+  Then end the run. This refusal costs minutes, not the hour the ambiguity
+  would cost downstream.
+
 ### Step 1 — pick the target (mechanical rule, applied once)
 
 Scan the request text case-insensitively. Check the rows in order; the first hit decides.

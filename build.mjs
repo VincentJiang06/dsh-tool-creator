@@ -29,7 +29,7 @@ if (!tmpl.includes('{{CHARTER_INDENTED}}')) throw new Error('template lost its c
 if (!tmpl.includes('name: \'dsh-pipeline-executor\'')) throw new Error('template lost the executor row (L2)');
 writeFileSync(join(PRESET, 'agent.cordis.yml'), tmpl.replace('{{CHARTER_INDENTED}}', indented));
 cpSync(join(SRC, 'preset/preset.yml'), join(PRESET, 'preset.yml'));
-for (const dir of ['manifest', 'roles', 'targets', 'schemas', 'validators', 'references']) {
+for (const dir of ['manifest', 'roles', 'targets', 'schemas', 'validators', 'references', 'skills']) {
   cpSync(join(SRC, dir), join(PRESET, dir), { recursive: true });
 }
 
@@ -98,7 +98,10 @@ mkdir -p "$(dirname "$DEST")"
 rm -rf "$DEST"
 cp -R "$HERE/preset" "$DEST"
 verify "$DEST"
-echo "installed preset '${PRESET_ID}' -> $DEST (select it from the dsh web preset picker; terminal runs use profile-patch.yml)"
+SKILL_DEST="\${DSH_HOME:-$HOME/.dsh}/skills/spec-grill"
+mkdir -p "$(dirname "$SKILL_DEST")" && rm -rf "$SKILL_DEST" && cp -R "$HERE/preset/skills/spec-grill" "$SKILL_DEST"
+echo "installed preset '${PRESET_ID}' -> $DEST (web preset picker; terminal runs use profile-patch.yml)"
+echo "installed companion skill spec-grill -> $SKILL_DEST (use it in a NORMAL session to forge the spec first)"
 `);
 chmodSync(join(DIST, 'install.sh'), 0o755);
 
