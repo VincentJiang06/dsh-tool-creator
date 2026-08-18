@@ -51,4 +51,14 @@
   for session headers whose `parentSession` equals one of those ids. Any hit
   means a role child delegated a helper: cite the helper session ids
   verbatim as a finding (severity per your persona's escalation table).
+  STRUCTURAL BLIND SPOT — do not report this audit as complete: because it
+  runs INSIDE a lens, and lenses all finish BEFORE the synthesis child is
+  spawned, it structurally CANNOT observe a helper delegated by the synthesis
+  child itself — the most-privileged battery agent (it reads every artifact and
+  writes the decision record). A "delegation CLEAN" from this pass therefore
+  covers only the lens layer; it does NOT prove the synthesis stage delegated
+  nothing (field-proven: r1c's synthesis child 0b4c3919 spawned helper
+  f0133a20 after all lenses had finished, and the lens audit reported CLEAN).
+  Record the synthesis-stage delegation as an uncovered gap in `coverage_gaps`;
+  never claim the session-log detection reliably catches all delegation.
 {{GATE_LOG_PREV}}

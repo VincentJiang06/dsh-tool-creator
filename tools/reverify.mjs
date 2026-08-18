@@ -23,7 +23,7 @@
 
 import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
-import { readFileSync, readdirSync, mkdtempSync } from 'node:fs';
+import { readFileSync, readdirSync, mkdtempSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -134,6 +134,8 @@ export const ACCEPTANCE_SCHEMA = {
               cwd: { type: 'string', description: 'relative to the artifact root; must resolve INSIDE it (verifier-enforced, no traversal)' },
               expectedExit: { type: 'integer' },
               description: { type: 'string' },
+              requiresKit: { type: 'boolean', description: 'true when the command invokes the pipeline kit (validators/) that never ships inside the artifact tree; reverify SKIPS it with a disclosed reason when the entrypoint is not staged in-tree (NOT a false-RED). Runs normally from the creation workspace where the kit is present.' },
+              requiresWorkspace: { type: 'boolean', description: 'true when the command resolves only from the creation workspace (e.g. a preset harness stepped up out of the shipped tree via ../); reverify SKIPS it with a disclosed reason when it resolves outside the installed artifact root.' },
             },
           },
         },
@@ -302,6 +304,24 @@ function verdictFoldError(verdicts) {
   return null;
 }
 
+// A command flagged requiresKit / requiresWorkspace re-proves only where its environment is present:
+// the creation workspace (kit staged) resp. the workspace-anchored path resolvable. On a bare/installed
+// artifact tree the entrypoint is absent or escapes the root, so reverify SKIPS it with a DISCLOSED
+// reason instead of a false-RED indistinguishable from tampering. The skip is gated on the EXPLICIT
+// flag — an unflagged in-tree harness that is missing still FAILS (that IS real tampering).
+function envSkipReason(cmd, root) {
+  if (!cmd.requiresKit && !cmd.requiresWorkspace) return null;
+  const script = cmd.argv[1]; // argv[0] is the interpreter (bash/python3); argv[1] is the script path
+  if (typeof script !== 'string') return null;
+  const rootAbs = path.resolve(root);
+  const abs = path.resolve(rootAbs, cmd.cwd || '.', script);
+  const insideRoot = abs === rootAbs || abs.startsWith(rootAbs + path.sep);
+  if (insideRoot && existsSync(abs)) return null; // environment present -> run for real
+  if (cmd.requiresWorkspace && !insideRoot)
+    return `skipped: requires the creation workspace — "${script}" resolves outside the installed artifact root (disclosed in limits[]); re-run reverify from the creation workspace for this command`;
+  return `skipped: requires the pipeline kit ("${script}") not staged in this tree (disclosed in limits[]); re-run reverify from the creation workspace, or stage validators/, for this command`;
+}
+
 function runCommand(cmd, root, timeoutMs, scratch) {
   const env = {
     PATH: process.env.PATH ?? '',
@@ -427,6 +447,8 @@ export async function reverify(manifestPath, { skipCommands = false, timeoutMs =
   const scratch = mkdtempSync(path.join(tmpdir(), 'reverify-'));
   let allStdout = '';
   for (const cmd of manifest.reverify.commands) {
+    const envSkip = envSkipReason(cmd, root);
+    if (envSkip) { add(`cmd:${cmd.id}`, 'command', 'SKIP', envSkip); continue; }
     const r = await runCommand(cmd, root, timeoutMs, scratch);
     allStdout += r.stdout;
     if (r.why) add(`cmd:${cmd.id}`, 'command', 'FAIL', r.why);

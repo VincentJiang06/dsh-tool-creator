@@ -95,8 +95,10 @@ LEDGER_TIMING_LIMIT = (
 )
 KIT_STAGING_LIMIT = (
     "reverify commands validate-dossier/validate-structure need the pipeline kit "
-    "(validators/ + artifacts/) staged at the artifact root; on a bare artifact "
-    "tree they fail visibly (non-zero exit), never silently"
+    "(validators/ + artifacts/) staged at the artifact root; they are marked requiresKit, so on a "
+    "bare/installed tree reverify SKIPS them with a disclosed reason (NOT a failure) and still "
+    "re-proves the HASH phase — run reverify from the creation workspace (or stage the kit) for the "
+    "command re-proof"
 )
 DSH_UNKNOWN_LIMIT = (
     "dshVersion unresolved at assembly time (no readable dsh install) — "
@@ -109,8 +111,50 @@ PRESET_WORKSPACE_HARNESS_LIMIT = (
     "build/preset/ is the install unit that lands in $DSH_HOME/.agent-presets/<id>/ and the harness "
     "must not travel with it (targets/preset/BUILD.md §1). The reverify commands therefore resolve "
     "only from the creation workspace (the harness path is stepped up out of the shipped preset root); "
-    "the HASH phase (per-file sha256 + rootHash) alone is re-runnable from the installed preset artifact"
+    "they are marked requiresWorkspace/requiresKit, so on the installed preset artifact reverify SKIPS "
+    "them with a disclosed reason (NOT a failure); the HASH phase (per-file sha256 + rootHash) alone is "
+    "re-runnable from the installed preset artifact"
 )
+
+# --------------------------------------------------------------------------
+# Governance disclosure (P2-c / foundation): the traveling manifest must confess
+# HOW its acceptance was adjudicated. A headless run has no human in the loop, and
+# the battery's SEED anti-false-negative gate is persona-instruction, not executor-
+# enforced — a consumer reading effective=industrial deserves to see both, or the
+# top grade travels with zero trace of being machine-self-adjudicated.
+# --------------------------------------------------------------------------
+MACHINE_ADJUDICATION_LIMIT = (
+    "adjudication mode: every gate in this creation was machine-adjudicated (headless run) — the "
+    "O-series human veto is RESERVED but was NOT exercised; no human reviewed or could block this "
+    "artifact. capability_level O-L3 is the machine-factory FLOOR (O-L0/L1/L2 are human-judged rungs a "
+    "headless all-machine run cannot occupy), not an earned mid-ladder climb"
+)
+
+
+def battery_mode_limit(acceptance: dict) -> str:
+    tier = acceptance.get("battery_independence_tier", "?")
+    verdict = acceptance.get("battery_verdict", "?")
+    return (
+        f"battery: verdict={verdict}, independence_tier={tier}. The SEED anti-false-negative gate (a lens "
+        "that misses its planted seed is void) is persona-instruction to the attacker lenses, NOT "
+        "mechanically enforced by the executor — a 'clean' verdict rests on the lenses' diligence, "
+        "cross-checked mechanically only by the breach-grade floor (P1/P2 lens findings force "
+        "'breaches_found'; a clean/not_run verdict over counted P1/P2 findings is refused at assembly). "
+        "A same-model battery cannot see a blind-spot class shared by every instance of the attacker "
+        "model; independence is instance/model-tier, never human"
+    )
+
+
+def governance_limits(decision: dict) -> list:
+    """Standing disclosures derived from the decision record's own gate/acceptance fields.
+    Emitted for every manifest so the adjudication mode travels with the artifact."""
+    out: list = []
+    gates = decision.get("gates") or []
+    human_in_loop = any(isinstance(g, dict) and g.get("adjudicator") == "human" for g in gates)
+    if not human_in_loop:
+        out.append(MACHINE_ADJUDICATION_LIMIT)
+    out.append(battery_mode_limit(decision.get("acceptance") or {}))
+    return out
 
 
 def sha256_bytes(data: bytes) -> str:
@@ -306,6 +350,20 @@ def derive_verdicts(decision: dict, counts: dict) -> tuple[dict, list]:
             "decision-record battery_verdict=='breaches_found' but zero P1/P2/P3 findings were counted across "
             "artifacts/battery-lens-*.json — breaches without findings is suppressed evidence"
         )
+    # Converse floor (the mechanical guarantee, not the synthesis's word): breach-grade
+    # findings on disk FORCE the breaches_found label. A clean/not_run verdict written over
+    # counted P1/P2 lens findings is suppressed evidence — and because battery_cap('clean')
+    # is 'industrial', that lie would otherwise mint the TOP grade on top of real breaches.
+    # P3 minors stay tolerated (the green path ships clean+P3) because they travel disclosed
+    # in verdicts.batteryFindingsCounts; only P1/P2 are breach-grade.
+    breach_grade = counts["p1"] + counts["p2"]
+    if battery != "breaches_found" and breach_grade > 0:
+        violations.append(
+            f"decision-record battery_verdict=={battery!r} but {breach_grade} P1/P2 breach-grade finding(s) "
+            "were counted across artifacts/battery-lens-*.json — only 'breaches_found' may carry P1/P2 "
+            "findings; a clean/not_run verdict over real breach-grade findings is suppressed evidence "
+            "(P3 minors are disclosed via verdicts.batteryFindingsCounts, not relabeled away)"
+        )
     verdicts = {
         "reAudit": re_audit,
         "battery": battery,
@@ -417,6 +475,28 @@ def artifact_root(build_dir: str) -> str:
     return build_dir
 
 
+def artifact_root_ambiguity(build_dir: str) -> str | None:
+    """Refuse-or-disclose (P3-6): artifact_root returns build/ on ANY root marker and only
+    descends to build/preset/ when build/ is marker-free. So a STRAY marker left at build/ root
+    while the real preset lives at build/preset/ silently mislocates the tree (a preset manifested
+    as a 'plugin' over the whole workspace). When BOTH levels carry markers we cannot mechanically
+    tell which is the artifact — a component whose ethos is 'derive or refuse' must refuse, not guess."""
+    def markers_at(d):
+        return [m for m in ("package.json", "preset.yml", "agent.cordis.yml", "SKILL.md")
+                if os.path.isfile(os.path.join(d, m))]
+    root_markers = markers_at(build_dir)
+    sub = os.path.join(build_dir, "preset")
+    sub_preset_markers = [m for m in markers_at(sub) if m in ("preset.yml", "agent.cordis.yml")] if os.path.isdir(sub) else []
+    if root_markers and sub_preset_markers:
+        return (
+            f"ambiguous artifact tree: build/ carries root marker(s) {root_markers} AND build/preset/ carries "
+            f"preset marker(s) {sub_preset_markers} — cannot mechanically decide whether the artifact is the "
+            f"preset at build/preset/ or a non-preset at build/. Refusing rather than silently hashing the wrong "
+            f"tree (remove the stray build/-level marker so the preset install unit is unambiguous)"
+        )
+    return None
+
+
 def detect_identity(build_dir: str, decision: dict) -> tuple[str, str, str, list]:
     violations: list = []
     fallback_name = decision.get("target") if isinstance(decision.get("target"), str) else None
@@ -510,6 +590,10 @@ def build_reverify(dossier: dict, files: dict, kind: str, build_dir: str, tree_d
             "cwd": ".",
             "expectedExit": 0,
             "description": harness_desc,
+            # A preset harness is stepped up out of the shipped tree (../evals/…): it resolves ONLY from
+            # the creation workspace, so reverify SKIPS-with-disclosure on the installed unit rather than
+            # reporting a false-RED. A skill/plugin harness travels in-tree and always runs.
+            **({"requiresWorkspace": True} if kind == "preset" else {}),
         },
         {
             "id": "validate-dossier",
@@ -517,6 +601,7 @@ def build_reverify(dossier: dict, files: dict, kind: str, build_dir: str, tree_d
             "cwd": ".",
             "expectedExit": 0,
             "description": "pipeline validator re-check of the evidence dossier (requires the pipeline kit staged at the artifact root)",
+            "requiresKit": True,
         },
         {
             "id": "validate-structure",
@@ -524,6 +609,7 @@ def build_reverify(dossier: dict, files: dict, kind: str, build_dir: str, tree_d
             "cwd": ".",
             "expectedExit": 0,
             "description": "pipeline validator re-check of the structure contract, fail-closed file existence (requires the pipeline kit staged at the artifact root)",
+            "requiresKit": True,
         },
     ]
     for cmd in commands:
@@ -594,6 +680,9 @@ def assemble(workspace: str, build_subdir: str, out_path: str, provider: str, ds
 
     # A preset target's self-contained tree sits at build/preset/; every other
     # target keeps it at build/. The manifest describes the ARTIFACT tree.
+    ambiguity = artifact_root_ambiguity(build_dir)
+    if ambiguity:
+        return {}, [ambiguity]
     tree_dir = artifact_root(build_dir)
 
     def load(name):
@@ -635,7 +724,7 @@ def assemble(workspace: str, build_subdir: str, out_path: str, provider: str, ds
     reverify, reverify_violations, kit_limits = build_reverify(dossier, files, kind, build_dir, tree_dir)
     violations.extend(reverify_violations)
 
-    limits = derive_limits(dossier) + kit_limits + prov_limits + [LEDGER_TIMING_LIMIT]
+    limits = derive_limits(dossier) + kit_limits + prov_limits + [LEDGER_TIMING_LIMIT] + governance_limits(decision)
 
     if violations:
         return {}, violations
@@ -809,6 +898,8 @@ def run_selftest() -> int:  # noqa: C901 — the selftest is deliberately exhaus
                 (any("E-L4" in x for x in manifest["limits"]), "not_run layer named in limits"),
                 (LEDGER_TIMING_LIMIT in manifest["limits"], "ledger-timing disclosure present"),
                 (KIT_STAGING_LIMIT in manifest["limits"], "kit-staging disclosure present"),
+                (MACHINE_ADJUDICATION_LIMIT in manifest["limits"], "machine-adjudication disclosure present (P2-c)"),
+                (any("SEED anti-false-negative gate" in x and "independence_tier=model" in x for x in manifest["limits"]), "battery-mode disclosure present (P2-c)"),
                 (len(manifest["reverify"]["commands"]) == 3 and all(c["cwd"] == "." for c in manifest["reverify"]["commands"]), "3 reverify commands, contained cwd"),
                 (all(not os.path.isabs(arg) for c in manifest["reverify"]["commands"] for arg in c["argv"]), "reverify argv all relative"),
                 (manifest["reverify"]["harnessPath"] == "evals/run_harness.sh", "harnessPath from dossier verification"),
@@ -872,6 +963,8 @@ def run_selftest() -> int:  # noqa: C901 — the selftest is deliberately exhaus
                 (manifest["reverify"]["harnessPath"] == "../evals/run_harness.sh", "harnessPath anchored up out of the shipped root"),
                 (manifest["reverify"]["commands"][0]["argv"] == ["bash", "../evals/run_harness.sh"], "harness argv resolves from the creation workspace"),
                 (manifest["reverify"]["commands"][0]["cwd"] == ".", "harness cwd stays contained in the shipped root"),
+                (manifest["reverify"]["commands"][0].get("requiresWorkspace") is True, "preset harness marked requiresWorkspace (P2-d skip-on-install)"),
+                (all(c.get("requiresKit") is True for c in manifest["reverify"]["commands"] if c["id"] in ("validate-dossier", "validate-structure")), "validate-* marked requiresKit (P2-d)"),
                 (PRESET_WORKSPACE_HARNESS_LIMIT in manifest["limits"], "workspace-anchored preset limit present"),
                 (any("E-L4" in x for x in manifest["limits"]), "not_run layer still named in limits"),
             ]
@@ -880,6 +973,23 @@ def run_selftest() -> int:  # noqa: C901 — the selftest is deliberately exhaus
                 fail(f"preset fixture assembled wrong: {bad}")
             else:
                 print("selftest: sanity-pass PRESET target (build/preset/ hashed, harness workspace-anchored, limit disclosed)")
+
+        # ---- sanity pass: machine-adjudication disclosure is DERIVED, not hardcoded --------
+        # A decision with a human-adjudicated gate must SUPPRESS the machine-adjudication limit
+        # (proving governance_limits reads the real gate adjudicator, not a constant), while the
+        # battery-mode disclosure still travels.
+        human_decision = _green_decision()
+        human_decision["gates"] = [{"stage": "final_acceptance", "adjudicator": "human"}]
+        fx = _write_workspace(os.path.join(tmp, "human"), decision=human_decision)
+        manifest, violations = _assemble_fx(fx)
+        if violations:
+            fail(f"human-adjudicated fixture refused: {violations}")
+        elif MACHINE_ADJUDICATION_LIMIT in manifest["limits"]:
+            fail("machine-adjudication limit was emitted despite a human-adjudicated gate — disclosure is hardcoded, not derived")
+        elif not any("SEED anti-false-negative gate" in x for x in manifest["limits"]):
+            fail("battery-mode disclosure missing on the human-adjudicated fixture")
+        else:
+            print("selftest: sanity-pass machine-adjudication disclosure is derived from gate adjudicator (P2-c)")
 
         # ---- traps ----------------------------------------------------------
         traps = []
@@ -931,6 +1041,21 @@ def run_selftest() -> int:  # noqa: C901 — the selftest is deliberately exhaus
         d["acceptance"]["effective_verdict"] = "candidate"
         traps.append(("breaches_found with zero counted lens findings", {"decision": d, "lens": {"findings": [], "flags": []}}, "suppressed evidence"))
 
+        # CONVERSE floor: the synthesis LIES 'clean' (→ battery_cap industrial) while the on-disk
+        # lens artifacts carry a real P1. The mechanical count off disk must refuse — otherwise the
+        # top grade ships on top of a breach. (This is the ATTACK-R1 P1.)
+        d = _green_decision()
+        d["acceptance"]["battery_verdict"] = "clean"
+        d["acceptance"]["effective_verdict"] = "industrial"
+        traps.append((
+            "clean verdict written over a real P1 breach-grade lens finding (industrial-on-breach lie)",
+            {"decision": d, "lens": {"findings": [{"severity": "P1", "location": "x", "claim": "real breach"}], "flags": []}},
+            "suppressed evidence",
+        ))
+
+        # (P3-tolerance — clean + only a P3 minor stays GREEN — is asserted by the green fixture
+        #  above, whose lens ships p3:1 and whose verdict folds to industrial. No trap needed here.)
+
         traps.append(("ledger missing", {"ledger_lines": None, "_rm_ledger": True}, "ledger missing"))
         traps.append(("ledger carries an unparseable line", {"ledger_lines": _ledger_lines() + ["CORRUPT-NOT-JSON"]}, "unparseable"))
 
@@ -944,6 +1069,20 @@ def run_selftest() -> int:  # noqa: C901 — the selftest is deliberately exhaus
         traps.append(("no roleModel anywhere in the ledger", {"ledger_lines": lines}, "model-pinned"))
 
         traps.append(("unrecognizable artifact tree", {"build_files": {"random.txt": "hello\n"}}, "unrecognizable"))
+
+        # P3-6: a STRAY root marker while the real preset lives at build/preset/ — artifact_root
+        # would silently return build/ and mislabel the preset as a plugin over the whole workspace.
+        # The ambiguity guard must REFUSE rather than guess.
+        traps.append((
+            "ambiguous tree: stray build/ marker + preset/ markers both present",
+            {"build_files": {
+                "package.json": '{"name":"stray-helper","version":"0.0.0"}\n',
+                "preset/preset.yml": "name: toy-preset\nversion: 2.0.0\n",
+                "preset/agent.cordis.yml": "- id: persona\n  name: '@deepseek-ai/persona'\n",
+                "evals/run_harness.sh": "#!/bin/sh\nexit 0\n",
+            }},
+            "ambiguous artifact tree",
+        ))
 
         for idx, (name, overrides, needle) in enumerate(traps):
             total += 1

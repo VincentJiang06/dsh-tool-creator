@@ -166,6 +166,50 @@ test('hash-only mode (--skip-commands): command checks SKIP, exit 0', () => {
 });
 
 // ---------------------------------------------------------------------------
+// P2-d: kit/workspace commands SKIP-with-disclosure on a bare tree (the false-RED fix)
+// ---------------------------------------------------------------------------
+test('requiresKit/requiresWorkspace commands SKIP with disclosure on a bare/installed tree, exit 0', () => {
+  const { dir, manifest } = buildGoodArtifact();
+  try {
+    // These are exactly the commands assemble_manifest emits: validate-* need the pipeline kit
+    // (validators/, never shipped) and a preset harness is stepped up out of the shipped tree.
+    // On a bare/installed tree that is a DISCLOSED skip, not a false-RED indistinguishable from tampering.
+    manifest.reverify.commands.push(
+      { id: 'validate-dossier', argv: ['python3', 'validators/validate_report.py', 'artifacts/evidence-dossier.json', '--target-dir', '.'],
+        cwd: '.', expectedExit: 0, description: 'kit re-check', requiresKit: true },
+      { id: 'preset-harness', argv: ['bash', '../evals/run_harness.sh'],
+        cwd: '.', expectedExit: 0, description: 'workspace-anchored harness', requiresWorkspace: true },
+    );
+    writeManifest(dir, manifest);
+    const { status, json } = runReverify(dir);
+    assert.equal(status, 0, 'a bare tree whose only failures would be kit/workspace commands is GREEN');
+    assert.equal(json.ok, true);
+    assert.equal(statusOf(json, 'cmd:validate-dossier').status, 'SKIP');
+    assert.match(statusOf(json, 'cmd:validate-dossier').detail, /pipeline kit/);
+    assert.equal(statusOf(json, 'cmd:preset-harness').status, 'SKIP');
+    assert.match(statusOf(json, 'cmd:preset-harness').detail, /creation workspace/);
+    assert.equal(statusOf(json, 'cmd:exit-zero').status, 'PASS'); // in-tree commands still really run
+    assert.deepStrictEqual(json.failed, []);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('skip is gated on entrypoint ABSENCE, not the flag: a requiresKit command whose entrypoint IS in-tree RUNS', () => {
+  const { dir, manifest } = buildGoodArtifact();
+  try {
+    // Flagged requiresKit but the entrypoint (evals/run_harness.sh) is present in the tree — it must
+    // RUN for real, not skip. This is what keeps a genuinely-missing in-tree harness a FAIL (tampering),
+    // never masked by a flag.
+    manifest.reverify.commands.push(
+      { id: 'kit-present', argv: ['bash', 'evals/run_harness.sh'], cwd: '.', expectedExit: 0,
+        description: 'flagged but entrypoint present -> runs', requiresKit: true });
+    writeManifest(dir, manifest);
+    const { status, json } = runReverify(dir);
+    assert.equal(status, 0);
+    assert.equal(statusOf(json, 'cmd:kit-present').status, 'PASS');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// ---------------------------------------------------------------------------
 // Red direction — seeded-bad variants, each asserting WHICH check failed
 // ---------------------------------------------------------------------------
 test('seeded bad (i): one file byte flipped -> hash:data/expected.txt FAIL, commands refused', () => {

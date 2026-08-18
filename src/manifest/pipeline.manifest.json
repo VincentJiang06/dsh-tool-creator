@@ -131,7 +131,7 @@
     {
       "id": "battery",
       "fanout": {
-        "$comment": "Battery scale is budgeted to ~engineer level (user directive 2026-08-18): THREE default lenses (coherence/gaming/reality — the concrete-defect catchers); evidence and foundation are opt-in for high-stakes runs by listing them here. Lens output capped at 12288; synthesis keeps 24576 (it emits the full decision record — starving it reproduces the guidance-class death). Seeds and PROVE-OR-FLAG discipline unchanged.",
+        "$comment": "Battery scale is budgeted to ~engineer level (user directive 2026-08-18): THREE default lenses (coherence/gaming/reality — the concrete-defect catchers); evidence and foundation are opt-in for high-stakes runs by listing them here. Lens output capped at 12288; synthesis keeps 32768 (it emits the full decision record — starving it reproduces the guidance-class death). Total ~= 3x12288 + 32768 = 69632, same order as engineer's 65536 (~engineer level). Seeds and PROVE-OR-FLAG discipline unchanged.",
         "lenses": [
           "coherence",
           "gaming",

@@ -94,7 +94,9 @@
               "argv": {"type": "array", "items": {"type": "string"}, "description": "argv[0] is the binary; non-empty (verifier-enforced)"},
               "cwd": {"type": "string", "description": "relative to the artifact root; must resolve INSIDE it (verifier-enforced, no traversal)"},
               "expectedExit": {"type": "integer"},
-              "description": {"type": "string"}
+              "description": {"type": "string"},
+              "requiresKit": {"type": "boolean", "description": "true when the command invokes the pipeline kit (validators/) that never ships inside the artifact tree; reverify SKIPS it with a disclosed reason when the entrypoint is not staged in-tree (NOT a false-RED). Runs normally from the creation workspace where the kit is present."},
+              "requiresWorkspace": {"type": "boolean", "description": "true when the command resolves only from the creation workspace (e.g. a preset harness stepped up out of the shipped tree via ../); reverify SKIPS it with a disclosed reason when it resolves outside the installed artifact root."}
             }
           }
         },

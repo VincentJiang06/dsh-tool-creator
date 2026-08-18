@@ -71,7 +71,7 @@ tick-vs-fact drift. Anchors: [AMZ-ORR][AMZ-Stripe评审][SELF-battery渐近].
 O-L0  every gate human-judged            (the HUMAN-run factory's setting)
 O-L1  machine checklist runs, human signs off
 O-L2  routine gates auto, high-leverage gates human-judged
-O-L3  battery auto-executes, veto reserved to human   (the tool-creator MACHINE factory's setting — the pipeline auto-adjudicates; human veto is reserved but not exercised in a headless run, disclosed as a limit)
+O-L3  battery auto-executes, human veto reserved-but-UNEXERCISED   (the tool-creator MACHINE factory's structural FLOOR — not an earned rung; see "Earned climb vs. structural floor" below. The pipeline auto-adjudicates; the human veto is reserved but never exercised in a headless run, disclosed as a limit.)
 O-L4  fully auto + periodic human spot-check
 ```
 
@@ -79,6 +79,23 @@ Upgrade conditions are **pre-registered** (e.g. O-L1→O-L2: routine checklist N
 zero disagreement with the human). Any serious incident **auto-demotes one level** (rollback before
 autonomy, PLT-原则24); a demotion records its recovery condition (same pre-registration as upgrade).
 Autonomy is bought by the Evidence Dossier, not by demo polish. Anchors: [PLT-定理5/宪法14/原则24][OAI-粒度表].
+
+**Earned climb vs. structural floor (headless honesty).** The pre-registered climb above describes a
+HUMAN-supervised ladder: O-L0/L1/L2 each name a rung where a human judges, signs off, or is
+disagreed-with, and a fresh human-run factory ships at O-L0 and *earns* upgrades. A **headless,
+all-machine** pipeline like this tool-creator cannot occupy any of those rungs — there is no human in
+the loop to judge, sign off, or calibrate against — and `validate_decision` accordingly **REJECTS**
+O-L0/O-L1/O-L2 for an all-machine decision record, tolerating only O-L3/O-L4. So for this pipeline
+O-L3 is **not an earned mid-ladder trust level**: it is the **structural FLOOR** — the lowest label
+the validator accepts for a machine record — stamped mechanically as a manifest constant, never
+climbed to (R2's honest attempt to write the lower O-L0 was validator-rejected → retries →
+`stopped_unmet`; R3 wrote O-L3 and passed, from the same doctrine). Read the O-L3 label here as
+"machine-adjudicated; human veto reserved but NOT exercised in headless operation", and read that
+"human veto" as a **disclosed limit, not an exercised control** — in any headless run no human ever
+pauses, reviews, or vetoes, so the veto is a stated boundary rather than a safety net that fired. The
+earned-climb / auto-demote machinery in the paragraph above governs a run that has a human rung to
+climb from and a human to demote it; it does **not** describe how this headless pipeline reached its
+floor.
 
 ---
 

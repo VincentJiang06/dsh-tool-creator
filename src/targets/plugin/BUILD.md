@@ -201,7 +201,7 @@ freeze its fake result (`Object.freeze`, deep) so the class dies offline.
 is no evidence available to you that these invariants hold. Therefore: (a) follow the rules above
 literally rather than reasoning about whether a given shape "should" work, and (b) record `E-L4`
 wiring as `not_run` in the dossier with the reason — exactly as §7's `E-L4` row already requires. A
-green `E-L4` you did not observe is a fabricated verdict, and these two invariants are precisely
+green `E-L4` you did not observe is a fabricated verdict, and these six invariants are precisely
 the failures such a green would hide.
 
 ---

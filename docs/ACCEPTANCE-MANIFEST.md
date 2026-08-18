@@ -49,9 +49,19 @@ dependencies, node ≥ 20. It runs three fail-closed phases:
    (`TMPDIR`/`REVERIFY_TMP` point at scratch), comparing exit codes; then the
    tree is re-hashed and must be byte-identical (`tree-unchanged`) — commands
    are required to be deterministic, offline, and side-effect-free inside the
-   artifact tree.
+   artifact tree. A command marked `requiresKit` (the `validate-dossier` /
+   `validate-structure` pipeline-kit re-checks) or `requiresWorkspace` (a
+   preset's workspace-anchored harness, stepped up out of the shipped tree) is
+   **SKIPPED with a disclosed reason** when its entrypoint is not present in the
+   installed tree — this is an honest skip, *not* a failure: on a bare/installed
+   artifact those entrypoints legitimately do not ship (the kit "never leaves the
+   factory"; a preset harness is not shipped inside the preset). The skip is
+   gated on entrypoint **absence**, never on the flag alone, so a genuinely
+   missing in-tree harness still FAILs (that is tampering). Run reverify from the
+   creation workspace — where the kit is staged and the harness resolves — for
+   the full command re-proof.
 
-Exit 0 iff every evaluated check passes. Output is a check table
+Exit 0 iff every evaluated check passes (a disclosed SKIP is not a failure). Output is a check table
 (`schema-shape`, `hash:<path>`, `root-hash`, `unlisted-files`, `harness-path`,
 `cmd:<id>`, `summary-regex`, `tree-unchanged`) — one row per named failure mode.
 
@@ -61,10 +71,16 @@ Today a directory row says "verified on rc.6" — a claim about the past, on
 someone else's machine. With the manifest, dsh-suite (or any installer) can run
 one command per listed artifact on **its** host, against **its** rc, and publish
 "re-proved on rc.7, 2026-08-17, all checks green" — or the exact check that
-broke, per artifact, when an rc-train host drifts. Install-time, the same
-command turns "we copied the files" into "we re-proved the artifact still
-passes its own battery before enabling it". Hash-only mode gives integrity
-checking for free where executing anything is unacceptable.
+broke, per artifact, when an rc-train host drifts. On a **bare/installed** tree
+the re-proof is the full HASH phase (byte-exact integrity) plus every in-tree
+command; the `requiresKit`/`requiresWorkspace` commands report a disclosed SKIP
+(not RED) because their entrypoints legitimately do not ship — so a holder gets
+an honest green, not a false failure. For the complete command re-proof
+(including the pipeline-kit re-checks) reverify runs from the **creation
+workspace**. Install-time, the same command turns "we copied the files" into
+"we re-proved the artifact's bytes and in-tree battery still pass before
+enabling it". Hash-only mode (`--skip-commands`) gives integrity checking for
+free where executing anything is unacceptable.
 
 ## Ledger-pin semantics
 
@@ -89,3 +105,17 @@ line that does not exist yet) and disclosed here rather than papered over.
   pinned bytes only, exit codes, unchanged tree) and leaves network isolation
   to the host. A manifest is evidence, not a signature: it proves consistency
   with what the creator recorded, not who the creator was.
+- **Adjudication mode travels in `limits[]`.** A headless run has no human in
+  the loop: every gate is machine-adjudicated and the O-series human veto is
+  reserved-but-not-exercised. The manifest discloses this (a standing
+  machine-adjudication limit) alongside the battery mode — its independence tier
+  and the fact that the SEED anti-false-negative gate is persona-instruction to
+  the attacker lenses, not executor-enforced. The one mechanical floor on the
+  battery verdict is the breach-grade check: P1/P2 lens findings force
+  `breaches_found`, and a `clean`/`not_run` verdict written over counted P1/P2
+  findings is **refused at assembly** (a `clean` cap is `industrial`, so this is
+  the guard that stops a top-grade verdict shipping over real breaches). What it
+  does *not* do is force a hollow battery to find defects it didn't look for —
+  hence the disclosure: a `clean` verdict rests on the lenses' diligence, and a
+  consumer reading `effective=industrial` can see, in `limits[]`, that no human
+  adjudicated it.

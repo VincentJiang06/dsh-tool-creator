@@ -23,7 +23,11 @@ produce a passing test suite. Anchors: O5, E6, E9, [SELF-battery渐近], [SELF-a
 
 **Input (from the dispatch packet):**
 - `target` — the built skill's directory (SKILL.md + modules + scripts + evals).
-- `lenses[]` — subset of the five (default: all five + synthesis).
+- `lenses[]` — the subset of the five actually run this battery, plus synthesis. The operative
+  default (per the manifest fanout) is **THREE lenses: coherence / gaming / reality** — the
+  concrete-defect catchers; **evidence and foundation are opt-in**, added for high-stakes runs. (Do
+  not read the five-lens taxonomy below as the default: the shipped default is three. A run that
+  omits evidence/foundation MUST disclose it — see the coverage-honesty rule under Synthesis.)
 - `budget` — the E9 pre-registered stop (rounds / tokens / marginal threshold), written BEFORE the
   first strike. If absent, refuse to start until the dispatch supplies one.
 - `required_tier` — `instance | model | human`. At A33 high stakes the dispatch MUST supply a
@@ -244,6 +248,15 @@ defects** — the thing no single isolated lens can see: a gamed metric propped 
 (Gaming × Evidence); a coherent-on-paper rule that both can't be transcribed AND rests on a circular
 premise (Reality × Foundation); flags from two lenses that jointly constitute a proof. Synthesis
 findings obey the same PROVE-OR-FLAG bar.
+
+**Coverage honesty (mandatory — the default battery does NOT run all five).** The shipped default is
+THREE lenses (coherence / gaming / reality); evidence and foundation are opt-in. Synthesis MUST write
+an explicit `coverage_gaps` entry naming **every one of the five lenses NOT run this battery** — a
+three-lens run may never be reported, folded, or synthesized as full five-lens coverage. This is not
+a formality: evidence and foundation are precisely the lenses that catch the staleness / overstatement
+and false-axiom / rot classes, so their absence is a **material coverage hole**, not a rounding error.
+Do not let the five-lens taxonomy in this pack lull the synthesis into assuming all five ran; check
+which lens artifacts actually exist and confess the rest.
 
 ---
 
