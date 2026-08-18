@@ -33,8 +33,20 @@ Refusals (the fraud classes this assembler exists to block):
      for a dossier carrying not_run layers is exactly this class.)
   4. Evidence integrity: missing/unparseable ledger, mixed manifestSha256 or
      pipeline ids across ledger lines, no roleModel anywhere, symlinks/specials
-     in the artifact tree, harness path absent from the tree, breaches_found
-     with zero counted lens findings — all refusals, all named.
+     in the artifact tree, harness path absent (from the artifact tree for
+     skill/plugin; from the creation-workspace build/ for a preset, whose harness
+     is workspace-anchored and NOT shipped inside the preset — see below),
+     breaches_found with zero counted lens findings — all refusals, all named.
+
+Preset evidence model (targets/preset/BUILD.md §1): a preset's install unit is
+build/preset/ (what lands in $DSH_HOME/.agent-presets/<id>/); the harness and the
+validate-dossier/validate-structure kit live at the creation-workspace build/ level
+and deliberately do NOT travel inside the shipped preset. So for kind=preset the
+manifest hashes build/preset/, the harness membership check is REPLACED by a
+"harness exists at build/" check, the reverify harness path is anchored to resolve
+from the creation workspace (stepped up out of the shipped root), and a REQUIRED
+limit discloses that the command phase is creation-workspace-anchored while the HASH
+phase alone re-runs from the installed artifact.
 
 Baseline-delta derivation (mechanical, no NLP): the first dossier layers[].notes
 entry containing "baseline" (case-insensitive) is the record. If it carries
@@ -89,6 +101,15 @@ KIT_STAGING_LIMIT = (
 DSH_UNKNOWN_LIMIT = (
     "dshVersion unresolved at assembly time (no readable dsh install) — "
     "re-verification cannot pin the host drift axis for this creation"
+)
+PRESET_WORKSPACE_HARNESS_LIMIT = (
+    "preset command-phase re-verification is creation-workspace-anchored: the acceptance harness "
+    "(evals/run_harness.sh) and the validate-dossier/validate-structure pipeline kit live at the "
+    "creation-workspace build/ level and are DELIBERATELY NOT shipped inside the preset tree — "
+    "build/preset/ is the install unit that lands in $DSH_HOME/.agent-presets/<id>/ and the harness "
+    "must not travel with it (targets/preset/BUILD.md §1). The reverify commands therefore resolve "
+    "only from the creation workspace (the harness path is stepped up out of the shipped preset root); "
+    "the HASH phase (per-file sha256 + rootHash) alone is re-runnable from the installed preset artifact"
 )
 
 
@@ -437,26 +458,58 @@ def detect_identity(build_dir: str, decision: dict) -> tuple[str, str, str, list
 # Reverify commands (relative paths — the manifest travels; cwd containment)
 # --------------------------------------------------------------------------
 
-def build_reverify(dossier: dict, files: dict) -> tuple[dict, list, list]:
+def build_reverify(dossier: dict, files: dict, kind: str, build_dir: str, tree_dir: str) -> tuple[dict, list, list]:
     violations: list = []
     extra_limits: list = []
     harness = (dossier.get("verification") or {}).get("harness_path")
+    # harness_ref is the value written into the manifest (argv + harnessPath). For
+    # skill/plugin it equals the dossier path (the harness travels INSIDE the tree).
+    # For a preset it is stepped up out of the shipped root to the workspace build.
+    harness_ref = ""
     if not isinstance(harness, str) or not harness.strip():
         violations.append("dossier verification.harness_path is missing/blank — a manifest without a runnable harness entry is unshippable")
         harness = ""
     else:
         harness = harness.strip()
-        if harness not in files:
-            violations.append(
-                f"dossier verification.harness_path '{harness}' is not in the artifact tree walk — the shipped harness must travel with the artifact"
-            )
+        if kind == "preset":
+            # A preset's install unit is build/preset/ ONLY; the harness (and the
+            # validate-dossier/validate-structure pipeline kit) deliberately live at the
+            # creation-workspace build/ level and must NOT land in $DSH_HOME on install
+            # (targets/preset/BUILD.md §1). So the membership check ("harness must be in
+            # the artifact tree files") does NOT apply for kind=preset. Instead:
+            #   (a) the harness must EXIST relative to the workspace build_dir, and
+            #   (b) the reverify command path is anchored to resolve from the creation
+            #       workspace — stepped up from the shipped tree (build/preset/) to
+            #       build_dir (build/) — the honest cwd/path for a workspace-anchored tool.
+            harness_abs = os.path.join(build_dir, harness)
+            if not os.path.isfile(harness_abs):
+                violations.append(
+                    f"preset harness verification.harness_path '{harness}' does not exist at the creation-workspace "
+                    f"build dir ('{harness_abs}') — a preset harness is workspace-anchored (not shipped inside the "
+                    f"preset tree) but it must still exist there to be re-runnable"
+                )
+            step = os.path.relpath(build_dir, tree_dir)  # '..' when the tree is build/preset/
+            harness_ref = os.path.normpath(os.path.join(step, harness)).replace(os.sep, "/")
+            extra_limits.append(PRESET_WORKSPACE_HARNESS_LIMIT)
+        else:
+            harness_ref = harness
+            if harness not in files:
+                violations.append(
+                    f"dossier verification.harness_path '{harness}' is not in the artifact tree walk — the shipped harness must travel with the artifact"
+                )
+    harness_desc = (
+        "the target's own deterministic acceptance harness, resolved from the CREATION WORKSPACE "
+        "(a preset harness is not shipped inside the preset tree; see limits[]) — targets/preset/BUILD.md §1/§6"
+        if kind == "preset"
+        else "the target's own deterministic acceptance harness (targets/*/BUILD.md evals convention)"
+    )
     commands = [
         {
             "id": "harness",
-            "argv": ["bash", harness],
+            "argv": ["bash", harness_ref],
             "cwd": ".",
             "expectedExit": 0,
-            "description": "the target's own deterministic acceptance harness (targets/*/BUILD.md evals convention)",
+            "description": harness_desc,
         },
         {
             "id": "validate-dossier",
@@ -482,7 +535,7 @@ def build_reverify(dossier: dict, files: dict) -> tuple[dict, list, list]:
                 violations.append(f"reverify command '{cmd['id']}' carries absolute path argv '{arg}' — the manifest travels; paths must be relative")
     if "validators/validate_report.py" not in files:
         extra_limits.append(KIT_STAGING_LIMIT)
-    return {"commands": commands, "harnessPath": harness}, violations, extra_limits
+    return {"commands": commands, "harnessPath": harness_ref}, violations, extra_limits
 
 
 # --------------------------------------------------------------------------
@@ -515,8 +568,12 @@ def consistency_errors(manifest: dict, decision: dict, dossier: dict) -> list:
                     f"SILENT-LIMIT SUPPRESSION: dossier layer {name} is not_run but limits[] does not name it — "
                     f"a limits list that lost a not_run layer is the fraud class this gate exists for"
                 )
+    # A preset's harness is creation-workspace-anchored and legitimately absent from the
+    # shipped tree files (targets/preset/BUILD.md §1); the in-tree guard applies to
+    # skill/plugin only, whose harness DOES travel inside the artifact.
+    kind = (manifest.get("artifact") or {}).get("kind")
     harness = (manifest.get("reverify") or {}).get("harnessPath", "")
-    if harness and harness not in (manifest.get("artifact") or {}).get("files", {}):
+    if kind != "preset" and harness and harness not in (manifest.get("artifact") or {}).get("files", {}):
         v.append(f"reverify.harnessPath '{harness}' not present in artifact.files")
     return v
 
@@ -569,11 +626,14 @@ def assemble(workspace: str, build_subdir: str, out_path: str, provider: str, ds
     baseline, baseline_violations = derive_baseline(dossier)
     violations.extend(baseline_violations)
 
-    reverify, reverify_violations, kit_limits = build_reverify(dossier, files)
-    violations.extend(reverify_violations)
-
+    # Identity (name/kind/version) is read from the tree BEFORE reverify so the
+    # harness handling can branch on kind: a preset's harness is workspace-anchored,
+    # not shipped inside the preset tree (targets/preset/BUILD.md §1).
     name, kind, version, identity_violations = detect_identity(tree_dir, decision)
     violations.extend(identity_violations)
+
+    reverify, reverify_violations, kit_limits = build_reverify(dossier, files, kind, build_dir, tree_dir)
+    violations.extend(reverify_violations)
 
     limits = derive_limits(dossier) + kit_limits + prov_limits + [LEDGER_TIMING_LIMIT]
 
@@ -789,6 +849,38 @@ def run_selftest() -> int:  # noqa: C901 — the selftest is deliberately exhaus
         else:
             print("selftest: sanity-pass skill identity from frontmatter")
 
+        # ---- sanity pass: PRESET target — shipped tree at build/preset/, harness at build/evals/ ----
+        # A preset ships build/preset/ ONLY; the harness lives at the creation-workspace build/
+        # level and is deliberately NOT in the shipped tree (targets/preset/BUILD.md §1). This
+        # MUST assemble GREEN: hash build/preset/, detect kind=preset, anchor the harness path up
+        # out of the shipped root, and disclose the workspace-anchored command-phase limit.
+        preset_files = {
+            "preset/preset.yml": "name: toy-preset\nversion: 2.0.0\ndescription: a toy preset\norder: 10\n",
+            "preset/agent.cordis.yml": "- id: persona\n  name: '@deepseek-ai/persona'\n",
+            "evals/run_harness.sh": "#!/bin/sh\nexit 0\n",
+        }
+        fx = _write_workspace(os.path.join(tmp, "preset"), build_files=preset_files)
+        manifest, violations = _assemble_fx(fx)
+        if violations:
+            fail(f"preset fixture refused: {violations}")
+        else:
+            a = manifest["artifact"]
+            checks = [
+                (a["name"] == "toy-preset" and a["kind"] == "preset" and a["version"] == "2.0.0", "preset identity from preset.yml"),
+                (set(a["files"]) == {"preset.yml", "agent.cordis.yml"}, "walk is the shipped preset/ tree only (harness NOT a member)"),
+                (a["rootHash"] == compute_root_hash(a["files"]), "rootHash recompute"),
+                (manifest["reverify"]["harnessPath"] == "../evals/run_harness.sh", "harnessPath anchored up out of the shipped root"),
+                (manifest["reverify"]["commands"][0]["argv"] == ["bash", "../evals/run_harness.sh"], "harness argv resolves from the creation workspace"),
+                (manifest["reverify"]["commands"][0]["cwd"] == ".", "harness cwd stays contained in the shipped root"),
+                (PRESET_WORKSPACE_HARNESS_LIMIT in manifest["limits"], "workspace-anchored preset limit present"),
+                (any("E-L4" in x for x in manifest["limits"]), "not_run layer still named in limits"),
+            ]
+            bad = [label for passed, label in checks if not passed]
+            if bad:
+                fail(f"preset fixture assembled wrong: {bad}")
+            else:
+                print("selftest: sanity-pass PRESET target (build/preset/ hashed, harness workspace-anchored, limit disclosed)")
+
         # ---- traps ----------------------------------------------------------
         traps = []
 
@@ -811,6 +903,28 @@ def run_selftest() -> int:  # noqa: C901 — the selftest is deliberately exhaus
         doss = _green_dossier()
         doss["verification"]["harness_path"] = "evals/ghost.sh"
         traps.append(("harness path absent from the artifact tree", {"dossier": doss}, "harness"))
+
+        # PRESET trap (b): the harness is missing even at the workspace build/ level — a preset
+        # harness is workspace-anchored (not shipped) but it must still EXIST to be re-runnable.
+        traps.append((
+            "preset harness missing at the creation-workspace build/ level",
+            {"build_files": {
+                "preset/preset.yml": "name: toy-preset\nversion: 2.0.0\n",
+                "preset/agent.cordis.yml": "- id: persona\n  name: '@deepseek-ai/persona'\n",
+            }},
+            "preset harness",
+        ))
+
+        # PLUGIN regression trap (c): the skill/plugin membership check is NOT loosened — the
+        # very stepped-up path a PRESET legitimately anchors is REFUSED for a plugin, whose
+        # harness must travel inside the artifact tree.
+        doss = _green_dossier()
+        doss["verification"]["harness_path"] = "../evals/run_harness.sh"
+        traps.append((
+            "plugin harness referenced outside the artifact tree still refuses (membership intact)",
+            {"dossier": doss},
+            "not in the artifact tree walk",
+        ))
 
         d = _green_decision()
         d["acceptance"]["battery_verdict"] = "breaches_found"

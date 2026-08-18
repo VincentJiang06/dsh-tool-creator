@@ -137,7 +137,7 @@ export const ACCEPTANCE_SCHEMA = {
             },
           },
         },
-        harnessPath: { type: 'string', description: 'artifact-relative path to the battery harness file (the BUILD.md evals/run_harness.sh convention); must exist in `files`' },
+        harnessPath: { type: 'string', description: 'path to the battery harness file (the BUILD.md evals/run_harness.sh convention). For skill/plugin it is artifact-relative and MUST exist in `files` (the harness travels inside the artifact). For a preset (kind=preset) the harness is creation-workspace-anchored and NOT shipped inside the preset tree (targets/preset/BUILD.md §1): the path is stepped up out of the shipped root, resolves only from the creation workspace, and is absent from `files` — the manifest discloses this in limits[].' },
         expectedSummaryRegex: { type: 'string', description: 'optional: a JS regex source that must match the concatenated stdout of all reverify commands in order — pins the harness summary line, not just exit codes' },
       },
     },
@@ -398,8 +398,19 @@ export async function reverify(manifestPath, { skipCommands = false, timeoutMs =
   } else {
     add('root-hash', 'hash', 'FAIL', `manifest ${manifest.artifact.rootHash}, recomputed ${recomputedRoot}`);
   }
-  if (manifest.reverify.harnessPath in declared) add('harness-path', 'hash', 'PASS');
-  else add('harness-path', 'hash', 'FAIL', `harnessPath "${manifest.reverify.harnessPath}" not in artifact.files`);
+  if (manifest.artifact.kind === 'preset') {
+    // A preset's install unit is build/preset/ ONLY; its acceptance harness lives at the
+    // creation-workspace build/ level and is deliberately NOT shipped inside the preset tree
+    // (targets/preset/BUILD.md §1). harnessPath is therefore creation-workspace-anchored (stepped
+    // up out of the shipped root) and legitimately absent from artifact.files; the manifest
+    // discloses this in limits[]. The hash phase does not require it on disk in the shipped tree.
+    add('harness-path', 'hash', 'SKIP',
+      `preset harness "${manifest.reverify.harnessPath}" is creation-workspace-anchored, not shipped inside the preset tree (disclosed in limits[])`);
+  } else if (manifest.reverify.harnessPath in declared) {
+    add('harness-path', 'hash', 'PASS');
+  } else {
+    add('harness-path', 'hash', 'FAIL', `harnessPath "${manifest.reverify.harnessPath}" not in artifact.files`);
+  }
 
   const hashesGreen = checks.every((c) => c.status !== 'FAIL');
 
