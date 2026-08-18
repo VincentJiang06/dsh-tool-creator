@@ -248,3 +248,15 @@ Wall-clock levers stack: flash zipper + zipper skipped for plugin/preset
 (0.1.5 target filter, in flight) + 3-way lenses → pipeline phase projected
 30-40min; sub-30 candidates (flash composer/guidance trial, engineer batch
 writes) gated on R3 measurements.
+
+## R2 (2026-08-19): stopped_unmet at battery — two synthesis-record defect classes
+Build green (dsh-acceptance-badge exists); battery a1 fold under-report +
+O-L0/adjudicator trap, a2 synthesis max-tokens (plugin targets yield bigger
+findings volumes), a3 O-L0 trap alone. Fixes: synthesis 24576→32768;
+battery dispatch prompt gains the ADJUDICATION TOPOLOGY law (machine
+adjudicator; O-L0 illegal in-run; write the fold's output). Honest note:
+R2 ran mixed-config (mid-flight preset install during the two-phase-UX step
+— my own install-discipline violation; per-line manifestSha256 in the ledger
+discloses provenance mechanically). Plan: R3 first (timing measurement),
+then resume R2's battery on the same workspace (fresh session, ledger
+continues) to birth the plugin manifest for ~¥5.

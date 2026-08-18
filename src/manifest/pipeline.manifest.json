@@ -147,7 +147,7 @@
           "tools": [
             "read"
           ],
-          "maxTokens": 24576
+          "maxTokens": 32768
         }
       },
       "dispatch": {

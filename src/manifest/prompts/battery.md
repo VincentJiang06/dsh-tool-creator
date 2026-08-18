@@ -13,6 +13,14 @@
   (executor-written). Synthesis: read the lens artifacts listed in this
   prompt's trailer, hunt cross-lens interactions, emit the Decision Record.
 - Your artifact: {{ARTIFACT}}.
+- ADJUDICATION TOPOLOGY (synthesis, decision-record law): this pipeline's
+  adjudicator is MACHINE (the gate validators). Write `adjudicator: machine`
+  and set `capability_level` accordingly — `O-L0` is legal ONLY when a human
+  actually adjudicated, which is never true inside this run. A record
+  claiming O-L0 with machine adjudication is self-contradictory and the gate
+  rejects it (measured: two runs died on exactly this). The verdict fold is
+  `min(re_audit, battery_cap)` with breaches_found capping at candidate —
+  write the fold's own output, never a level above or below it.
 - You must not use the subagent tool; work is yours alone.
 - Plugin targets only ({{TARGET}} == plugin): the mechanical hallucinated-API
   gate is available to lenses with bash —
