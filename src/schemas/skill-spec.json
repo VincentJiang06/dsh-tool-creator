@@ -1,5 +1,4 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "SkillSpec — composer artifact (C-series)",
   "description": "The decision object composer emits. Six-vendor-intersection JSON: object root, all required, no min* constraints, snake_case, English. Tri-state (filled / explicit-unknown / explicit-dispute) and build-vs-reject consistency are enforced by the L0 script validate_spec, NOT by this schema. Anchors: C2 fifteen-field object, C7 reject branch.",
   "type": "object",

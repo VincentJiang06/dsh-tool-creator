@@ -215,3 +215,43 @@ builder must reconcile this spec against it and record deviations in
     The shipped manifest's gate commands (incl. the battery then-chain) now
     spell validator paths `{{PRESET_DIR}}/validators/…` and workspace paths
     `{{WORKSPACE}}/…`.
+
+## 0.1.4 L5-R1 deviations (2026-08-18)
+
+16. **`loadOutputSchema` strips a top-level `$schema` before dispatch**
+    (SPIKE-FINDINGS deviation 9). The live web host validates the
+    `subagents.start` outputSchema against a keyword subset
+    (type/oneOf/properties/required/additionalProperties/items/enum/const +
+    the annotations description/title/default/examples) and REFUSES
+    `$schema` outright — the L5-R1 composer dispatch died on it. The shipped
+    role schemas no longer carry the key; the loader strip is
+    defense-in-depth for schemas authored elsewhere. Test-pinned at both
+    levels: the loader unit test and a dispatched-request assertion.
+
+## Delegation confinement limit (0.1.4, honest limit — not fixable here)
+
+Role children CAN delegate. The executor's `toolFilter` confinement is
+tool-surface-level for INHERITED tools only: the host masks the global layer
+and ancestor scopes, but a tool registered into the child's OWN scope is
+exempt by design (`structured_output` depends on that exemption). On
+deployments where a subagent plugin registers its tool per-agent on
+`agent/created` (e.g. `@huanlin/dsh-plugin-yet-another-subagent`, observed
+live in L5-R1), every role child carries a working `subagent` tool that no
+`allow`/`deny` filter can remove, and its helpers run with the deployment's
+own profile filter (often none) — including reaching `pipeline_*` when the
+executor is mounted host-plane. The request-level `maxDepth` cap
+(`depthLimit` capability) bounds only the child a given request starts and
+is not inherited, so it cannot deny delegation below the role child without
+denying the role child itself (SPIKE-FINDINGS deviation 10 has the full
+source trace).
+
+What ships instead: (a) every dispatch-context template carries the ban line
+"You must not use the subagent tool; work is yours alone."; (b) the battery
+stage documents a mechanical session-log detection (helper sessions have
+`parentSession` = a ledgered `childSessionIds` id in the host session
+store) — see `manifest/prompts/battery.md`; (c) this section, so nobody
+re-reads T-D2 as "children cannot fan out" on the web plane. A
+`helperSessions` ledger count was considered and rejected: children of
+children are not cheaply detectable at the executor's seam (the delegation
+tool name is deployment-config-dependent, and the run handle exposes only
+the direct child session, only within the settlement-to-disposal window).

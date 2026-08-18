@@ -131,10 +131,10 @@ generate at least one adversarial narrative in Step 5 and at least one entry in 
 
 **Produce:** the `narratives` array: >=2 complete usage stories, >=1 flagged `adversarial`
 (deliberately out-of-bounds or nasty input). The adversarial one should be GENERATED FROM the
-Step-4 answers to questions 3/4 (misuse / silent failure), and — since the conductor allows
-read-only parallel intelligence — preferably WRITTEN by a different mind: request a fresh
-subagent be dispatched to author it cold from the spec-so-far, and record that in the
-narrative's `author` field. If you must self-author, say so honestly in `author`.
+Step-4 answers to questions 3/4 (misuse / silent failure). Delegation is NOT available in
+this pipeline (your dispatch context bans the subagent tool; work is yours alone), so
+self-author the narrative from a deliberate cold re-read of the spec-so-far, and say
+`self-authored` honestly in the narrative's `author` field.
 
 **Rule:** spec holes become visible when the skill is concretely USED; simulating use by
 writing is the cheap version of finding out in eval [AMZ-Stripe虚构指南]. Good test scenarios
@@ -254,9 +254,9 @@ externalization — no dependence on your presence, on this conversation, or on 
 [AMZ-APIMandate][ANT-四件套]. Rich specs are what make downstream stages testable; the #2
 root cause of downstream failure is an upstream spec hole [SELF-debugloop].
 
-**Procedure:** cold-read your own JSON as a stranger — or better, request a fresh subagent be
-dispatched to read ONLY the JSON and list (1) its restatement of the task and (2) every
-question it would still need to ask. Each question not answered by the spec body is one
+**Procedure:** cold-read your own JSON as a stranger (delegation is banned in this
+pipeline — the stranger is you, after stepping back): list (1) its restatement of the task
+and (2) every question a cold reader would still need to ask. Each question not answered by the spec body is one
 externalization defect. Target: **zero questions**.
 
 **Shadow:** externalization pressure breeds defensive verbosity — writing everything in so

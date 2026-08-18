@@ -180,6 +180,19 @@ test('confinement: SPIKE-shaped request — persona bytes, whitelist toolFilter,
   assert.ok(!('descriptor' in request), 'descriptor is never passed');
 });
 
+test('a schema file carrying $schema dispatches with the key absent (deviation 9)', async (t) => {
+  const fx = await makeFixture(t, {
+    files: {
+      'schemas/alpha-out.json': `${JSON.stringify({ $schema: 'https://json-schema.org/draft/2020-12/schema', ...ALPHA_SCHEMA }, null, 2)}\n`,
+    },
+  });
+  const subagents = makeFakeSubagents();
+  await runStage({ stage: 'alpha' }, makeDeps(fx, { subagents }));
+  const { request } = subagents.calls[0];
+  assert.ok(!('$schema' in request.outputSchema), 'the dispatched request never carries $schema — the live host refuses the keyword');
+  assert.deepEqual(request.outputSchema, ALPHA_SCHEMA);
+});
+
 test('PRESET_DIR renders ABSOLUTE even when the configured baseDir is relative', async (t) => {
   const fx = await makeFixture(t);
   const subagents = makeFakeSubagents();

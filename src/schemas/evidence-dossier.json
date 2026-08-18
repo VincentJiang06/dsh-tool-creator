@@ -1,5 +1,4 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "EvidenceDossier — engineer artifact (E-series)",
   "description": "Institutionalized doubt, layered. Six-vendor-intersection JSON. The L0 script validate_report RE-RUNS the harness (stale command_output fails) and checks every layer verdict + evaluator calibration record + red-light artifact exist. Anchors: E1 six layers, E2 pressure layer, E3 capability/regression split, E6 evaluator audit, E9 pre-registered stop.",
   "type": "object",

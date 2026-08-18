@@ -1,5 +1,4 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "DecisionRecord + LearningRecord — conductor artifact (O-series)",
   "description": "The conductor's own artifact and tamper-evident ledger. Every gate verdict is a COMPLETE decision object (O2): a PASS with no rejected options is an un-thought signal. Six-vendor-intersection JSON. The conductor is the single writer (A35). Anchors: O2 complete decision object, O3 min() routing, O4 gate leverage, O5 battery + min-fold, O7 capability ladder, O8 learning record three destinations.",
   "type": "object",

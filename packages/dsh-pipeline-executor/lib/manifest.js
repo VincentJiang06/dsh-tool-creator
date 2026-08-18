@@ -337,6 +337,15 @@ export async function loadManifest({ manifestPath, baseDir = '', cache }) {
  * Load + validate an output schema file (SPIKE deviation 4: standard
  * JSON-Schema subset — object-rooted, `required` as ARRAY when present,
  * explicit boolean `additionalProperties` at the root).
+ *
+ * A top-level `$schema` key is STRIPPED before the schema is handed to
+ * dispatch (SPIKE deviation 9, learned live in L5-R1): the web host's
+ * outputSchema validator accepts only the keyword subset
+ * type/oneOf/properties/required/additionalProperties/items/enum/const plus
+ * the annotations description/title/default/examples, and REFUSES `$schema`
+ * ("unsupported JSON schema: schema.$schema is not a supported keyword").
+ * The shipped schemas no longer carry it; this strip is defense-in-depth for
+ * schema files authored elsewhere.
  */
 export async function loadOutputSchema(absPath) {
   let text;
@@ -360,6 +369,7 @@ export async function loadOutputSchema(absPath) {
   if (schema.required !== undefined && !Array.isArray(schema.required)) {
     throw new PipelineError(CODES.MANIFEST_INVALID, `output schema at ${absPath} must express required as an ARRAY (outputSchema dialect), got ${typeof schema.required}`);
   }
+  delete schema.$schema; // deviation 9: the host outputSchema subset refuses the keyword
   return schema;
 }
 

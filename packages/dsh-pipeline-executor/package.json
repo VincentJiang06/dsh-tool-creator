@@ -1,6 +1,6 @@
 {
   "name": "dsh-pipeline-executor",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Declarative multi-agent pipeline executor for DeepSeek Harness (dsh): runs a manifest of confined role dispatches with mechanical gates and a machine-written evidence ledger. dsh 声明式多角色流水线执行器：按 manifest 派发受限子代理、机械门禁、机器写证据账本。",
   "keywords": [
     "dsh-plugin",

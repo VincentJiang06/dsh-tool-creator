@@ -1,5 +1,4 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "CompressionReport — zipper artifact (Z-series)",
   "description": "Compression's object is BEHAVIOR, not text. Six-vendor-intersection JSON. Verdict is LEXICOGRAPHIC (R11): gate 1 = behavioral equivalence (regression not-down AND probes not-down); only then gate 2 compares token gain vs exception cost. Literal-lossless-but-behavior-degraded is a negative asset. Anchors: Z1 three ledgers + lexicographic verdict, Z2 dual acceptance, Z5 incompressible list, Z6 cache prefix, Z7 description polish.",
   "type": "object",

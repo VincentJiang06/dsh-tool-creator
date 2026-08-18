@@ -1,5 +1,4 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "StructureContract — guidance artifact (S-series)",
   "description": "The executable micro-constitution guidance emits: what materials exist (nouns), when each is read/run (verbs), what is forbidden (invariants). Six-vendor-intersection JSON. Provenance authenticity, INVARIANT<=15% cap, and rule->script reference existence are enforced by the L0 script validate_structure. Anchors: S1 ten-tuple, S4 authority tiers, S7 federation layers, S9 rejected structures, S10 trust boundary.",
   "type": "object",

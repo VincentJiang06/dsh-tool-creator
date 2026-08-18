@@ -158,3 +158,17 @@ F4 MAJOR: children carry a scoped 'subagent' tool EXEMPT from toolFilter
    depth/deny seam; else honest-limit + persona ban + battery detection.
 F6 minor: events.mux via curl yields no frames; session.list polling works.
 B15 head-to-head: DNF (no build) — target unmet this round, re-fire after fixes.
+
+## R1 fix bundle landed (2026-08-18): F1-F4 closed, executor 0.1.4
+$schema stripped everywhere + defensively in loader (host subset = deviation 9);
+glob/grep out (final arrays verified against live known-tools list); guidance
+40960 / composer 24576 + {{PRESET_DIR}} absolutes in all five prompts; F4 root
+cause = @huanlin/dsh-plugin-yet-another-subagent registers an own-scope
+subagent tool into EVERY agent (restrict-exempt by design); request maxDepth
+caps only the direct child → branch (d): honest limit (SPEC + deviation 10) +
+prompt-level ban in all five templates + battery session-log detection.
+Composer role-pack delegation suggestions reconciled with the ban (2 passages,
+conductor edit). 93/93 executor, 12/12 repo, 7/7 selftests; 0.1.4 in web
+profile; dist reinstalled, hot-fix drift gone. Deployment note for docs: strict
+confinement additionally requires not installing own-scope subagent plugins
+(ya-subagent) in the serving profile.

@@ -38,7 +38,6 @@ const MANIFEST_BASENAME = 'acceptance-manifest.json';
 // so a copied-out reverify.mjs stays a single self-contained file.
 // ---------------------------------------------------------------------------
 export const ACCEPTANCE_SCHEMA = {
-  $schema: 'https://json-schema.org/draft/2020-12/schema',
   title: 'AcceptanceManifest — evidence-in-artifact (D4, the category-creating standard)',
   description: "Machine-readable acceptance record shipped INSIDE every created artifact as acceptance-manifest.json at the artifact root. Any installer or directory (dsh-suite class) re-runs it with tools/reverify.mjs: 'verified on rc.6' becomes 're-verify on rc.7'. Field names are camelCase to match the evidence ledger lines the executor writes (packages/dsh-pipeline-executor/SPEC.md), which this manifest summarizes — NOT the snake_case of the pipeline-internal sibling schemas, because those never leave the factory and this file does. Uses only the draft-07-compatible keyword subset (type/required/enum/const/pattern/items/additionalProperties) so the zero-dependency validator embedded in tools/reverify.mjs can enforce it byte-for-byte; that embedded copy MUST stay identical to this file (drift-tested in test/acceptance.test.mjs).",
   type: 'object',

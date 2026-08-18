@@ -36,6 +36,8 @@ test('every shipped output schema passes the outputSchema loader', async () => {
   const files = (await readdir(REPO_SCHEMAS_DIR)).filter((f) => f.endsWith('.json'));
   assert.ok(files.length >= 5, `expected the five shipped schemas, found ${files.length}`);
   for (const file of files) {
+    const raw = JSON.parse(await readFile(join(REPO_SCHEMAS_DIR, file), 'utf8'));
+    assert.ok(!('$schema' in raw), `${file} must not carry $schema (L5-R1 F1: the web host outputSchema subset refuses it)`);
     const schema = await loadOutputSchema(join(REPO_SCHEMAS_DIR, file));
     assert.equal(schema.type, 'object', file);
     assert.equal(typeof schema.additionalProperties, 'boolean', file);
@@ -323,6 +325,13 @@ test('loadOutputSchema enforces the outputSchema dialect', async (t) => {
 
   const good = await write('good.json', { type: 'object', properties: { a: { type: 'string' } }, required: ['a'], additionalProperties: false });
   assert.deepEqual((await loadOutputSchema(good)).required, ['a']);
+
+  // Deviation 9 (L5-R1 live): a top-level $schema key is stripped — the web
+  // host's outputSchema subset REFUSES the keyword at subagents.start.
+  const withMeta = await write('withmeta.json', { $schema: 'https://json-schema.org/draft/2020-12/schema', type: 'object', properties: { a: { type: 'string' } }, required: ['a'], additionalProperties: false });
+  const stripped = await loadOutputSchema(withMeta);
+  assert.ok(!('$schema' in stripped), '$schema stripped before dispatch');
+  assert.deepEqual(stripped, { type: 'object', properties: { a: { type: 'string' } }, required: ['a'], additionalProperties: false });
 
   const arrayRoot = await write('array.json', { type: 'array', items: {} });
   await assert.rejects(loadOutputSchema(arrayRoot), (e) => e.code === CODES.MANIFEST_INVALID && /object-rooted/.test(e.message));
