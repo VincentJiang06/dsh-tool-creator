@@ -91,6 +91,9 @@
     # aborted under the 30-min default when five full-scale lenses ate the
     # window first (R1-b). The scale cut is the real fix; this is margin.
     dispatchTimeoutMs: 2700000
+    # All three battery lenses fire concurrently (wall-clock directive):
+    # saves ~6 min per battery attempt at identical token cost.
+    maxConcurrentDispatches: 3
 
 # ── preset-local skills: OMITTED (L2 decision, 2026-08-17) ─────────────────
 

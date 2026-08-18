@@ -222,3 +222,14 @@ lives in artifacts/ until PACKAGING copies it to the artifact root.
 Assembler now excludes __pycache__/.git/node_modules/.DS_Store from the walk
 (r1c shipped .pyc whose bytes churn on harness re-runs → would trip
 tree-unchanged). Ledger-pin 5-of-6 semantics documented.
+
+## Wall-clock compression (2026-08-18, user directive: full run <1h)
+R1-c anatomy: 78.7min = engineer 23.4 (irreducible real work) + battery 33
+(two attempts) + rest ~22. Three levers, no quality cut: zipper → v4-flash
+(mechanical stage, gate-guarded, also first live E5 datum), battery lens
+concurrency 2→3 (three lenses simultaneous), remaining matrix runs
+parallelized where evidence allows. Projected single-attempt full run
+≈56-58min. Source-only; install scheduled BETWEEN R2 and R3 (never mutate an
+in-flight run's engine). Deeper cuts if still needed (queued, need evidence):
+composer→flash trial, engineer corpus floor tuning — both quality-risky,
+gate-measurable, L7.
