@@ -237,7 +237,9 @@ boot 不变量** + preset 目标的**八条 mount-guard 不变量**(`targets/*/B
 
 ## 8. 与 dsh-pipeline-executor 的关系 / Relationship to the executor
 
-`dsh-pipeline-executor` 是**独立发布在 npm 上的通用生态件**,不是本 preset 私有。
+`dsh-pipeline-executor` 是**独立发布在 npm 上的通用生态件**,不是本 preset 私有:
+**[npmjs.com/package/dsh-pipeline-executor](https://www.npmjs.com/package/dsh-pipeline-executor)**
+(`npm install dsh-pipeline-executor`,0.1.7,MIT)。
 它读一份声明式 stage manifest,每关派发一个或多个受限角色子代理(persona + 工具
 白名单 + outputSchema 由 manifest 钉死),由 **executor 而非模型**从子代理的结构化
 返回写产物,用机械门(execFile argv、无 shell)判 verdict,并把每次尝试写进只读、
