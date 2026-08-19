@@ -412,3 +412,21 @@ by exactly the retry waste. Total 62.0min vs baseline 62.4.
   target-aware --out (build/ vs build/preset/) would make it born-in-place.
 - Ops: dsh web port is 3080 (runbook said 3081 — fixed); install+restart
   before run, never mid-run (discipline held).
+
+## L7-V2 + L7 CLOSED (2026-08-19 22:18, r6)
+Budget fix CONFIRMED: 0/4 flash ROLE_NO_OUTPUT (V1: 2/4) — both V1 cap-deaths
+(composer@24576, zipper@32768) green first-pass under 40960/49152. Sub-60
+retry-inclusive ACHIEVED: 59.69min (V1 62.0), 5/5 stages first-pass, zero
+token waste (653,417 ledgered vs V1's 631,330 + ~62K dead waste). HONEST
+FRAMING (margin 0.3min < engineer variance ±4.5min, range 21.2/26.5/30.2):
+"typically sub-60, not guaranteed; residual variance is pro-stage, not
+flash". Flash stage times stable across runs (4.7/5.8, 7.3/6.2, 2.7/2.5).
+GATE-FLOOR HIGHLIGHT: r6 engineer (pro variance) shape-checked the trigger
+battery instead of live-running it (31 entries live_run=false); gaming AND
+reality lenses independently flagged it as their P1s -> breaches_found ->
+candidate. A real quality regression caught, counted, and shipped IN the
+verdict — the exact "cheaper model is safe because gates hold the floor"
+thesis, live-proven. reverify 72/72; mixed-model disclosure verbatim;
+byte-identical request to V1. L7 CLOSED — flash tier is the shipped default.
+Remaining L7-adjacent (tracked, not blocking): executor 0.1.8 candidates
+(dead-attempt ledgering, target-aware --out), mechanical SEED gate (v0.2).

@@ -1,9 +1,40 @@
-# L7 flash 分层实测(L7-V1,r5,2026-08-19)
+# L7 flash 分层实测(V1=r5 / V2=r6,2026-08-19)
 
 > 主张:机械阶段(composer/guidance/zipper)换 `deepseek-v4-flash`,质量下限由门系统
 > 保证,总时长压到 60 分钟内。验证方式:R1 同题(csv-md-table skill)live 全流水线,
-> 与 R3 的分阶段基线头对头。判定:**partial——单次提速全真,门全守住,但 sub-60 差
-> 在两次可修的预算类重试上**;修复已落,下一跑门测。
+> 请求字节级相同,与 R3 分阶段基线头对头。
+> **终判(V2)**:预算修复实证成立(flash 死亡 0/4 vs V1 2/4),**sub-60 含重试达成:
+> 59.69 分**(V1 62.0)——余量 0.3 分,小于 pro 阶段方差(engineer 跨跑 21.2/26.5/30.2),
+> 诚实表述是"**典型 sub-60,非保证**;剩余方差在 pro 阶段,与 flash 无关"。
+
+## V1 → V2 对照(V2 五关全首过,零重试)
+
+| 阶段 | 模型 | V1 含重试 | V1 绿次 | **V2(=绿次)** | V2 token |
+|---|---|---|---|---|---|
+| composer | flash | 9.6m(a1 死) | 5.8m | **4.7m** | 42,581 |
+| guidance | flash | 6.2m | 6.2m | **7.3m** | 77,893 |
+| engineer | pro | 21.2m | 21.2m | **30.2m**(慢侧方差) | 187,416 |
+| zipper | flash | 8.7m(a1 死) | 2.5m | **2.7m** | 62,394 |
+| battery | pro | 15.8m | 15.8m | **13.9m** | 283,133 |
+| **合计** | | **62.0m** | | **59.69m** | 653,417(零浪费) |
+
+flash 阶段耗时跨跑稳定(4.7/5.8、7.3/6.2、2.7/2.5);V1→V2 的总差 = 消灭重试(−10.0m)
+− engineer 方差(+9.0m)。V1 死于 24576/32768 的两个派发,在 40960/49152 下均一次过。
+
+## V2 的门系统高光:真实质量回归被当场抓获
+
+r6 的 engineer(pro,跑间方差)把触发电池做成了**形状检查**(31 条全 `live_run=false`,
+`observed:null`),没有像 r5 那样实跑确定性激活代理(37 条 live,1.0/0.0)。battery 的
+gaming 与 reality 两个透镜**各自独立**把这一点定为 P1(共 2×P1/5×P2/2×P3),verdict
+= breaches_found → effective 压到 candidate,**回归被抓住、计数、写进出厂 verdict**,
+而不是溜出厂——这正是"质量地板由门保证"的实证:换更便宜的模型敢,是因为验收不靠模型自觉。
+
+## V2 其余机械验证
+
+- manifest:`model.id = deepseek-v4-flash+deepseek-v4-pro`;mixed-model 披露行逐字在
+  limits[];64 文件,O-L3。
+- reverify **72/72 exit 0**(harness 实跑绿,validate-* 披露式 SKIP,tree-unchanged 绿)。
+- 请求与 V1 字节级相同;无中途安装;诚实 done close-out。
 
 ## 分阶段实测(r5 vs 基线)
 
