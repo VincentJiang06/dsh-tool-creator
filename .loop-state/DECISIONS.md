@@ -373,3 +373,42 @@ Scope decided from L5's own measurements (62.4min = composer 8.6 + guidance
 - Projection: 62.4 − (8.6−~3) − (9.5−~4) ≈ 51min. L7-V1 validation run
   (r5, R1-comparable csv-md-table, off-peak) IN FLIGHT — gate-measured,
   results land below.
+
+## L7-V1 results (r5, 2026-08-19, off-peak, R1-comparable csv-md-table)
+VERDICT: PARTIAL — gates held completely, flash speedups real, sub-60 missed
+by exactly the retry waste. Total 62.0min vs baseline 62.4.
+- Green-attempt times: composer 5.8 (flash, -33%), guidance 6.2 (flash,
+  -35%), engineer 21.2 (pro, -5.3 same-model variance), zipper 2.5 (flash,
+  -64% vs r1c PRO 6.9), battery 15.8 (pro). Retry-free projection ≈52min.
+- 2/4 flash dispatches died a1 ROLE_NO_OUTPUT. FORENSICS (session-log
+  decompression): both are max-tokens truncation via REASONING BLOWOUT —
+  composer a1: 18,243/24,576 reasoning, structured_output had started
+  streaming (22 deltas) when cut; zipper a1: 32,768/32,768 = 100% reasoning
+  self-check loop, output never began. Flash at deployment
+  reasoningEffort=high (NOT pinnable per-dispatch — spike E3) reasons far
+  past pro's budgets. Guidance passed at 40960 — the three flash stages
+  bracket the failure cleanly (24576 die / 32768 die / 40960 pass).
+- FIX APPLIED (manifest-only): composer maxTokens 24576→40960, zipper
+  32768→49152. Caps bill nothing unused. Re-validation deferred to next
+  off-peak window (peak now; ~¥20 balance left) — the caps change is
+  mechanically safe; next real run gate-measures it.
+- DEAD CONFIG FOUND: zipper role block carried role-level provider/model
+  (flash) from the L5 lever — the executor reads STAGE-level only
+  (dispatch.js stage.model ?? defaults.model), so L5's "zipper→flash" never
+  actually ran; r1c zipper 6.9min was PRO time. Dead keys removed; the
+  stage-level key (this round) is the live one. Lesson: a lever is only real
+  where the executor READS it — verify with the ledger's roleModel, which is
+  exactly what L7-V1 did.
+- L6 fixes live-proven for the first time: mixed-model limits line verbatim
+  in the r5 manifest; model.id=deepseek-v4-flash+deepseek-v4-pro; reverify
+  61/61 with validate-* as disclosed requiresKit SKIPs; honest close-out.
+- Quality: fixtures 14 classes/23 cases (vs r1c 10/30+30 — breadth +40%,
+  cases -23%, shape shift not collapse); trigger battery 37 cases (25+/12-),
+  pos 1.0 / false-fire 0.0. breaches_found→candidate (0P1/2P2/4P3).
+- TRACKED (executor 0.1.8 candidates): (a) failed attempts ledger
+  childSessionIds:[] + tokens:null — dead children unledgered (~62K output
+  tokens invisible; forensics needed spawn-time matching); (b) manifest is
+  born at artifacts/ and reaches the artifact root by archival copy — a
+  target-aware --out (build/ vs build/preset/) would make it born-in-place.
+- Ops: dsh web port is 3080 (runbook said 3081 — fixed); install+restart
+  before run, never mid-run (discipline held).

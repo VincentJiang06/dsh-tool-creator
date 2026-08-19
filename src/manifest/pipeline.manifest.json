@@ -20,13 +20,13 @@
     {
       "id": "composer",
       "model": "deepseek-v4-flash",
-      "$comment": "L7 flash tier (2026-08-19): composer/guidance/zipper run deepseek-v4-flash — their outputs are fully gate-guarded (validate_spec / structure+dossier / packaging gate + charter retry table), so the quality floor is held by the gates, not the model. engineer and battery stay on defaults.model (deepseek-v4-pro): engineer is the B15 quality pole, battery is the verdict-bearing model (T-D6/A37 pin). Mixed-model provenance is mechanically disclosed by assemble_manifest from the ledger's per-stage roleModel.",
+      "$comment": "L7 flash tier (2026-08-19): composer/guidance/zipper run deepseek-v4-flash — their outputs are fully gate-guarded (validate_spec / structure+dossier / packaging gate + charter retry table), so the quality floor is held by the gates, not the model. engineer and battery stay on defaults.model (deepseek-v4-pro): engineer is the B15 quality pole, battery is the verdict-bearing model (T-D6/A37 pin). Mixed-model provenance is mechanically disclosed by assemble_manifest from the ledger's per-stage roleModel. L7-V1 (r5) measured: flash green-attempt speedups composer -33% / guidance -35% / zipper -64%, BUT flash at deployment reasoningEffort=high (not pinnable per-dispatch, spike E3) burns far more reasoning tokens than pro — composer died at 24576 (18.2K reasoning) and zipper at 32768 (100% reasoning) with ROLE_NO_OUTPUT, while guidance passed at 40960. Flash-stage maxTokens therefore carry headroom: composer 40960 (the proven-green budget), zipper 49152. A cap is a ceiling, not a spend — unused budget bills nothing.",
       "role": {
         "persona": "roles/composer.md",
         "tools": [
           "read"
         ],
-        "maxTokens": 24576
+        "maxTokens": 40960
       },
       "dispatch": {
         "promptTemplate": "manifest/prompts/composer.md",
@@ -114,9 +114,7 @@
           "write",
           "edit"
         ],
-        "maxTokens": 32768,
-        "provider": "deepseek-official",
-        "model": "deepseek-v4-flash"
+        "maxTokens": 49152
       },
       "dispatch": {
         "promptTemplate": "manifest/prompts/zipper.md",

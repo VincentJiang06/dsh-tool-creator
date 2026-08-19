@@ -8,7 +8,8 @@
 ## 驱动方式(先探路)
 
 首选:dsh web 的 loopback API 程序化驱动——`session.create` 接受
-`agentPreset`(apiproxy wire,深读 §1.4);web 实例历史端口 3081。runner
+`agentPreset`(apiproxy wire,深读 §1.4);web 实例端口 **3080**(L7-V1 实测;
+旧记 3081 已过时,以 `lsof -iTCP -sTCP:LISTEN | grep node` 现查为准)。runner
 代理先探 API 形状(create → send → 轮询事件/读会话日志),不通则退回手动
 web UI + 会话日志离线提取。**preset 安装**:`bash dist/install.sh` 后重启
 dsh web(standing mount 每进程一次)。
