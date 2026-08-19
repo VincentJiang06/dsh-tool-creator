@@ -1,5 +1,11 @@
 # dsh-tool-creator
 
+[![release](https://img.shields.io/github/v/release/VincentJiang06/dsh-tool-creator)](https://github.com/VincentJiang06/dsh-tool-creator/releases)
+[![ci](https://github.com/VincentJiang06/dsh-tool-creator/actions/workflows/ci.yml/badge.svg)](https://github.com/VincentJiang06/dsh-tool-creator/actions/workflows/ci.yml)
+[![npm · dsh-pipeline-executor](https://img.shields.io/npm/v/dsh-pipeline-executor?label=npm%20%C2%B7%20dsh-pipeline-executor)](https://www.npmjs.com/package/dsh-pipeline-executor)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![models](https://img.shields.io/badge/models-deepseek--v4--pro%20%2B%20v4--flash-8A2BE2)
+
 > 一个 dsh(DeepSeek Harness)**制品工厂**:五个受限角色子代理被确定性步进,
 > 造出 dsh skill / plugin / preset,并把一份**机器裁定、可重跑的验收证据**
 > (`acceptance-manifest.json`)打进每一个制品内部。

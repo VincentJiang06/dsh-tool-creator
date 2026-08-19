@@ -1,0 +1,36 @@
+name: ci
+
+# The entire test surface is offline and dependency-free by design (the same
+# property the acceptance standard demands of reverify commands): five Python
+# validator selftests (fail-closed trap batteries), two node:test suites, and
+# the single-source dist build. No npm install, no secrets, no network.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: validator selftests (trap batteries — every trap must be caught)
+        run: |
+          python3 src/validators/assemble_manifest.py --selftest
+          python3 src/validators/validate_decision.py --selftest
+          python3 src/validators/validate_report.py --selftest
+          python3 src/validators/validate_structure.py --selftest
+          python3 src/validators/validate_compression.py --selftest
+      - name: acceptance-manifest + assembly suites
+        run: node --test test/*.test.mjs
+      - name: dsh-pipeline-executor suite
+        run: node --test test/*.test.mjs
+        working-directory: packages/dsh-pipeline-executor
+      - name: single-source build (src/ -> dist/)
+        run: node build.mjs
