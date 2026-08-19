@@ -19,6 +19,8 @@
   "stages": [
     {
       "id": "composer",
+      "model": "deepseek-v4-flash",
+      "$comment": "L7 flash tier (2026-08-19): composer/guidance/zipper run deepseek-v4-flash — their outputs are fully gate-guarded (validate_spec / structure+dossier / packaging gate + charter retry table), so the quality floor is held by the gates, not the model. engineer and battery stay on defaults.model (deepseek-v4-pro): engineer is the B15 quality pole, battery is the verdict-bearing model (T-D6/A37 pin). Mixed-model provenance is mechanically disclosed by assemble_manifest from the ledger's per-stage roleModel.",
       "role": {
         "persona": "roles/composer.md",
         "tools": [
@@ -41,6 +43,7 @@
     },
     {
       "id": "guidance",
+      "model": "deepseek-v4-flash",
       "role": {
         "persona": "roles/guidance.md",
         "tools": [
@@ -100,6 +103,7 @@
     },
     {
       "id": "zipper",
+      "model": "deepseek-v4-flash",
       "targets": [
         "skill"
       ],

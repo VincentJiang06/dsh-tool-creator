@@ -282,6 +282,23 @@ def derive_provenance(entries: list, ledger_path: str, provider: str, dsh_root: 
     models = sorted({e.get("roleModel") for e in entries if isinstance(e.get("roleModel"), str) and e.get("roleModel").strip()})
     if not models:
         violations.append("no ledger line carries a roleModel — verdicts are model-pinned and cannot ship unpinned")
+    if len(models) > 1:
+        # L7 flash tier: gate-guarded mechanical stages may run a cheaper sibling model while
+        # engineer/battery stay on the verdict-bearing model. A mixed-model run must travel with
+        # its per-stage attribution, mechanically derived from the ledger's own stage+roleModel —
+        # a consumer reading the joined model.id deserves to know WHICH role ran WHICH model.
+        stage_models: dict = {}
+        for e in entries:
+            stage, rm = e.get("stage"), e.get("roleModel")
+            if isinstance(stage, str) and isinstance(rm, str) and rm.strip():
+                stage_models.setdefault(stage, set()).add(rm.strip())
+        mapping = ", ".join(f"{s}={'+'.join(sorted(ms))}" for s, ms in sorted(stage_models.items()))
+        extra_limits.append(
+            f"mixed-model run: {mapping} (per the evidence ledger's roleModel lines). model.id joins every "
+            "model used; verdicts expire when any of them changes (A37, conservative reading). The battery "
+            "stage's own ledger line lands after assembly (see the ledger-timing limit) — its model is pinned "
+            "by the sha-pinned pipeline manifest, not readable from the ledger at assembly time"
+        )
     session_ids: list = []
     for e in entries:
         for sid in e.get("childSessionIds") or []:
@@ -905,6 +922,7 @@ def run_selftest() -> int:  # noqa: C901 — the selftest is deliberately exhaus
                 (KIT_STAGING_LIMIT in manifest["limits"], "kit-staging disclosure present"),
                 (MACHINE_ADJUDICATION_LIMIT in manifest["limits"], "machine-adjudication disclosure present (P2-c)"),
                 (any("SEED anti-false-negative gate" in x and "independence_tier=model" in x for x in manifest["limits"]), "battery-mode disclosure present (P2-c)"),
+                (not any("mixed-model run" in x for x in manifest["limits"]), "single-model run carries NO mixed-model limit (L7)"),
                 (len(manifest["reverify"]["commands"]) == 3 and all(c["cwd"] == "." for c in manifest["reverify"]["commands"]), "3 reverify commands, contained cwd"),
                 (all(not os.path.isabs(arg) for c in manifest["reverify"]["commands"] for arg in c["argv"]), "reverify argv all relative"),
                 (manifest["reverify"]["harnessPath"] == "evals/run_harness.sh", "harnessPath from dossier verification"),
@@ -978,6 +996,27 @@ def run_selftest() -> int:  # noqa: C901 — the selftest is deliberately exhaus
                 fail(f"preset fixture assembled wrong: {bad}")
             else:
                 print("selftest: sanity-pass PRESET target (build/preset/ hashed, harness workspace-anchored, limit disclosed)")
+
+        # ---- sanity pass: mixed-model run (L7 flash tier) → joined id + per-stage disclosure ----
+        # composer on the flash sibling, engineer on the verdict model: provenance.model.id must
+        # join both, and limits[] must carry the mechanical per-stage attribution.
+        mixed_lines = _ledger_lines()
+        mixed_lines[0]["roleModel"] = "deepseek-v4-flash"  # composer line
+        fx = _write_workspace(os.path.join(tmp, "mixed"), ledger_lines=mixed_lines)
+        manifest, violations = _assemble_fx(fx)
+        if violations:
+            fail(f"mixed-model fixture refused: {violations}")
+        else:
+            checks = [
+                (manifest["provenance"]["model"]["id"] == "deepseek-v4-flash+deepseek-v4-pro", "model.id joins both models"),
+                (any("mixed-model run" in x and "composer=deepseek-v4-flash" in x and "engineer=deepseek-v4-pro" in x
+                     for x in manifest["limits"]), "per-stage attribution in limits"),
+            ]
+            bad = [label for passed, label in checks if not passed]
+            if bad:
+                fail(f"mixed-model fixture assembled wrong: {bad}")
+            else:
+                print("selftest: sanity-pass mixed-model run joins model.id + attributes per-stage in limits (L7)")
 
         # ---- sanity pass: machine-adjudication disclosure is DERIVED, not hardcoded --------
         # A decision with a human-adjudicated gate must SUPPRESS the machine-adjudication limit

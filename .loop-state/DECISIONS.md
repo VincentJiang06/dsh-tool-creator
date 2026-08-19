@@ -346,3 +346,30 @@ results) added to BUILD.md — 6th boot-only invariant, all field-earned.
 L5 close: all matrix runs done, differential battery banked, wall-clock
 ~62-63min (over the <1h goal — engineer + battery are the poles; sub-60 is
 L7 with flash-tier trials). → L6 attack + release.
+
+## L7 cost compression: flash tier (2026-08-19, post-v0.1.0)
+Scope decided from L5's own measurements (62.4min = composer 8.6 + guidance
+9.5 + engineer 26.5 + battery 17.8; lens 3-way concurrency ALREADY on):
+- APPLIED: composer/guidance/zipper → deepseek-v4-flash via stage-level
+  `model` override (executor already supported stage.model since manifest
+  schema day one — manifest-only change). Rationale: all three are fully
+  gate-guarded (validate_spec/structure/dossier + charter retry table) — the
+  quality floor is held by GATES, not the model. Engineer stays v4-pro (B15
+  quality pole: 30+30 corpus). Battery stays v4-pro (verdict-bearing model,
+  T-D6/A37 pin).
+- PROVENANCE: derive_provenance now emits a mechanical mixed-model limits[]
+  line (stage=model per ledger roleModel; battery's own line lands post-
+  assembly per LEDGER_TIMING_LIMIT, stated). model.id joins all models used
+  (conservative A37: verdicts expire when ANY changes). Selftest: mixed
+  sanity-pass + green-fixture no-mixed assertion.
+- REJECTED (evidence-based): lens cache-prefix stagger — persona (the shared
+  bulk) is already the request prefix, divergence starts at the short lens
+  line; the remaining lever is only the 3-way concurrency race, worth
+  ~$0.1-0.2/run against an executor timing knob + wall-clock cost. Not worth
+  it. Engineer corpus-floor trim — B15's win came from corpus depth; user
+  priority is 一次通过 over speed. Battery lens/cap trim — already cut 47%
+  in L5; further trim erodes the attack surface the differential claims
+  stand on.
+- Projection: 62.4 − (8.6−~3) − (9.5−~4) ≈ 51min. L7-V1 validation run
+  (r5, R1-comparable csv-md-table, off-peak) IN FLIGHT — gate-measured,
+  results land below.
